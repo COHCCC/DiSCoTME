@@ -1,0 +1,9 @@
+TME_aware_model/*
+
+!TME_aware_model/__init__.py
+!TME_aware_model/LongNet.py
+!TME_aware_model/global_local_main_usr.py
+!TME_aware_model/global_local_model.py
+!TME_aware_model/global_local_train.py
+!TME_aware_model/run_ddp_usr.sh
+__pycache__/
