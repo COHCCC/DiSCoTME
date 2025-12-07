@@ -7,3 +7,4 @@ TME_aware_model/*
 !TME_aware_model/global_local_train.py
 !TME_aware_model/run_ddp_usr.sh
 __pycache__/
+eval/slurm_logs/
