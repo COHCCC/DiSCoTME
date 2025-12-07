@@ -1,0 +1,32 @@
+Attempting to activate Conda environment...
+Conda environment successfully activated: gigapath (Path: /home/nsong/anaconda3/envs/gigapath/bin/python)
+[INFO] PY_BIN=/home/nsong/anaconda3/envs/gigapath/bin/python
+Date: Sun Dec  7 15:13:59 MST 2025
+Job ID: 28085171
+Job Name: vis_crc08
+Node list: g-g-1-6-13
+Number of nodes: 1
+Partition: gpu-v100
+CPUs per task: 16
+Memory per node: 122880
+Current working directory: /coh_labs/dits/nsong/manuscript/DiSCoTME
+Using VIS_SCRIPT: visualization_usr.py
+Using PROJECT_ROOT (for PYTHONPATH): /coh_labs/dits/nsong/manuscript
+=== CUDA check ===
+CUDA_VISIBLE_DEVICES=0,1
+Tesla V100-SXM2-16GB, 0
+Tesla V100-SXM2-16GB, 1
+==================
+ERROR: Cannot find visualization_usr.py in current directory
+Current directory contents:
+total 304
+drwxrwx--- 8 nsong domain users  232 Dec  7 15:13 .
+drwxrwx--- 5 nsong domain users   79 Dec  5 20:11 ..
+drwxrwx--- 2 nsong domain users  143 Dec  4 17:16 eval
+drwxrwx--- 8 nsong domain users  270 Dec  4 17:24 .git
+-rwxrwxr-- 1 nsong domain users  241 Dec  4 17:19 .gitignore
+drwxrwx--- 2 nsong domain users  109 Dec  4 17:16 preprocessing
+-rwxrwxr-- 1 nsong domain users 6257 Dec  7 15:10 README.md
+drwxrwx--- 2 nsong domain users   68 Dec  7 15:13 slurm_logs
+drwxrwx--- 2 nsong domain users   66 Dec  4 17:15 spaceranger_realignment
+drwxrwx--- 5 nsong domain users  295 Dec  7 15:09 TME_aware_model

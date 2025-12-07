@@ -11,7 +11,7 @@
 #!/bin/bash
 # run_visualization.sh - 使用DDP脚本的环境设置逻辑运行可视化
 
-#SBATCH --job-name=vis_crc08
+#SBATCH --job-name=discotme_demo
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=jiasong@coh.org
 #SBATCH --nodes=1
@@ -21,8 +21,8 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=120G
 #SBATCH --time=4:00:00
-#SBATCH --output=slurm_logs/vis_%j.out
-#SBATCH --error=slurm_logs/vis_%j.err
+#SBATCH --output=slurm_logs/discotme_demo_vis_%j.out
+#SBATCH --error=slurm_logs/discotme_demo_vis_%j.err
 
 mkdir -p slurm_logs
 

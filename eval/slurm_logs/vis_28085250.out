@@ -1,0 +1,25 @@
+Attempting to activate Conda environment...
+Conda environment successfully activated: gigapath (Path: /home/nsong/anaconda3/envs/gigapath/bin/python)
+[INFO] PY_BIN=/home/nsong/anaconda3/envs/gigapath/bin/python
+Date: Sun Dec  7 15:23:12 MST 2025
+Job ID: 28085250
+Job Name: vis_crc08
+Node list: g-g-1-7-16
+Number of nodes: 1
+Partition: gpu-v100
+CPUs per task: 16
+Memory per node: 122880
+Current working directory: /coh_labs/dits/nsong/manuscript/DiSCoTME/eval
+Using VIS_SCRIPT: visualization_usr.py
+Using PROJECT_ROOT (for PYTHONPATH): /coh_labs/dits/nsong/manuscript/DiSCoTME
+=== CUDA check ===
+CUDA_VISIBLE_DEVICES=0,1
+Tesla V100-SXM2-16GB, 0
+Tesla V100-SXM2-16GB, 1
+==================
+[INFO] Running: /home/nsong/anaconda3/envs/gigapath/bin/python visualization_usr.py --data-root /coh_labs/dits/Craig_Spatial/Craig_SPA1_D/outs --metadata-csv metadata.csv --model-path /coh_labs/dits/nsong/manuscript/DiSCoTME/TME_aware_model/checkpoints/geneattn_ddp_20251207_150949/final_model.pth --output-dir /coh_labs/dits/nsong/manuscript/SPA1_D/results   --output-suffix e5
+Starting visualization at Sun Dec  7 15:23:12 MST 2025...
+[INFO] PROJECT_ROOT added to sys.path: /coh_labs/dits/nsong/manuscript/DiSCoTME
+------------------------------------------------------------------------------------
+Visualization finished at Sun Dec  7 15:23:31 MST 2025 with exit code 2
+Job finished.

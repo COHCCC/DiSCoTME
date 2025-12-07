@@ -1,31 +1,19 @@
 #!/bin/bash
 # run_ddp_usr.sh
-#############   HOW TO USE THIS SCRIPT  ################
-# sbatch run_ddp_usr.sh \
-#   --data-root /coh_labs/dits/nsong/CRC_Spatial/CRC_08_Tumor \
-#   --metadata-csv metadata.csv \
-#   --tissue-positions-csv tissue_positions.csv \
-#   --batch-size 12 --num-epochs 5 --learning-rate 3e-5 \
-#   --weight-decay 1e-5 --temperature 0.07 \
-#   --num-local 15 --num-global 0 --local-distance 400 \
-#   --embed-dim 256 --proj-dim 128 \
-#   --seed 42 \
-#   --save-dir-base checkpoints/crc_08
 
-#############   GOOD LUCK:>  ################
-
-#SBATCH --job-name=crc08_ddp
+#SBATCH --job-name=discotme_demo
 #SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --exclude=g-g-1-7-18
 #SBATCH --mail-user=jiasong@coh.org
-#SBATCH --nodes=1
+#SBATCH --nodes=3
 #SBATCH --ntasks-per-node=1
 #SBATCH --partition=gpu-v100
-#SBATCH --gres=gpu:2
-#SBATCH --cpus-per-task=16
-#SBATCH --mem=160G
-#SBATCH --time=8:00:00
-#SBATCH --output=slurm_logs/ddp_crc%j.out
-#SBATCH --error=slurm_logs/ddp_crc%j.err
+#SBATCH --gres=gpu:4
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=320G
+#SBATCH --time=1:00:00
+#SBATCH --output=slurm_logs/discotme_demo_%j.out
+#SBATCH --error=slurm_logs/discotme_demo_%j.err
 
 mkdir -p slurm_logs
 
@@ -111,9 +99,7 @@ PY
 echo "====================================="
 echo "[INFO] PY_ENTRY=${PY_ENTRY}"
 echo "[INFO] ARGS: $@"
-# 关键点 1：让 srun 继承环境（--export=ALL）
-# 关键点 2：使用当前 env 的 torchrun 绝对路径（${TORCHRUN_BIN}）
-# 关键点 3：训练参数透传给 Python（"$@"），不再硬编码
+
 srun --label --export=ALL --gres=gpu:${GPUS_PER_NODE} \
   "${TORCHRUN_BIN}" \
   --nnodes="${SLURM_NNODES}" \

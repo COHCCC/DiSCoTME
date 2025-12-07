@@ -1,4 +1,45 @@
 ## <font color=#00297D>Index</font>
+- **Sanity check Demo data before submittion
+- Demo data download: 
+```bash
+wget -r -np -nd ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM8513nnn/GSM8513873/suppl/
+wget https://huggingface.co/datasets/nina-song/SPA1_D/resolve/main/Craig_SPA1_D.tif
+```
+- Preprocessing (speed up this process by ```salloc -n16 -p bigmem --mem=512G```)
+
+```bash
+gunzip *.gz
+
+for f in GSM8513873_SPA1_D_*; do
+    mv "$f" "${f#GSM8513873_SPA1_D_}"
+done
+
+mkdir -p spatial
+mv tissue_positions.csv scalefactors_json.json spatial/
+```
+
+- In some cases, you might need to export lib path by ```export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/nsong/anaconda3/envs/gigapath/lib/``` (remember to change to your envs)
+
+```bash
+python preprocessing/preprocessing_auto.py --root /coh_labs/dits/nsong/manuscript/SPA1_D
+```
+
+- Train the Model
+
+```bash
+cd TME_aware_model/
+sbatch run_ddp_usr.sh   --data-root /coh_labs/dits/nsong/manuscript/SPA1_D --metadata-csv metadata.csv --tissue-positions-csv tissue_positions.csv --batch-size 12 --num-epochs 5 --learning-rate 3e-5 --weight-decay 1e-5 --temperature 0.07 --num-local 15 --num-global 0 --local-distance 400 --embed-dim 256 --proj-dim 128 --seed 42 --save-dir-base checkpoints/
+```
+- Eval the Model
+
+```bash
+sbatch run_visualization.sh --data-root /coh_labs/dits/nsong/manuscript/SPA1_D --metadata-csv metadata.csv --model-path /coh_labs/dits/nsong/manuscript/DiSCoTME/TME_aware_model/checkpoints/geneattn_ddp_20251207_150949/final_model.pth --output-dir /coh_labs/dits/nsong/manuscript/SPA1_D/results --output-suffix e5
+```
+
+- Final output
+```
+/coh_labs/dits/nsong/manuscript/SPA1_D/results/k6/fused_clusters_e5.csv
+```
 
 - [1. Introduction & Objectives](#1)
 - [2. File Structure](#2)
@@ -20,11 +61,10 @@ The preprocessing module has been upgraded for fully automated Visium data handl
 - Generate a unified metadata file linking each spot to its coordinates, gene expression, and corresponding patch path
 
 ### Usage
-
 Hint: 
 - If on HPC such as gemini, speed up this process by ```salloc -n16 -p bigmem --mem=512G``` (dont forget to exit after using)
 - Activate environment 
-- In some cases, you might need to export lib path by ```export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/nsong/anaconda3/envs/gigapath/lib/```
+- In some cases, you might need to export lib path by ```export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/nsong/anaconda3/envs/gigapath/lib/``` (remember to change to your envs)
 
 ```bash
 python preprocessing/preprocessing_auto.py --root /path/to/Visium_project
@@ -42,10 +82,9 @@ CRC_08_Tumor/
 
 ## 2.2 Train the Model
 
-Train SEAGULL using distributed data parallel (DDP) on GPUs with contrastive learning.
+Train DiSCoTME using distributed data parallel (DDP, if request more than 1 node) on GPUs with contrastive learning.
 
 ### Usage
-
 ```bash
 sbatch --job-name=job_name --partition=gpu-v100 --gres=gpu:2 --nodes=1 --ntasks-per-node=1 run_ddp_usr.sh \
   --data-root /path/to/Visium_or_VisiumHD_project \
@@ -111,7 +150,7 @@ Generate embeddings and visualizations for the trained model.
 sbatch run_visualization.sh \
   --data-root /path/to/Visium_project \
   --metadata-csv /path/to/Visium_project/metadata.csv \
-  --model-path DiSCoTME/TME_aware_model/checkpoints/crc_08/geneattn_ddp_20251019_194806/final_model.pth \
+  --model-path DiSCoTME/TME_aware_model/checkpoints/test/job_name_with_time_stamp/final_model.pth \
   --output-dir /path/to/Visium_project/results \
   --output-suffix e5
 ```
