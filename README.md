@@ -1,42 +1,81 @@
-## <font color=#00297D>Index</font>
-- **Sanity check Demo data before submittion
-- Demo data download: 
+## Demo Data Pipeline (sanity check before submission)
+
+### 1. Download Demo Data
 ```bash
+# Transcriptome data from GEO
 wget -r -np -nd ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM8513nnn/GSM8513873/suppl/
+
+# H&E image from Hugging Face
 wget https://huggingface.co/datasets/nina-song/SPA1_D/resolve/main/Craig_SPA1_D.tif
 ```
-- Preprocessing (speed up this process by ```salloc -n16 -p bigmem --mem=512G```)
 
+### 2. Preprocessing
+
+For faster processing, allocate resources first:
 ```bash
+salloc -n16 -p bigmem --mem=512G
+```
+
+Prepare the files:
+```bash
+# Decompress
 gunzip *.gz
 
+# Remove prefix
 for f in GSM8513873_SPA1_D_*; do
     mv "$f" "${f#GSM8513873_SPA1_D_}"
 done
 
+# Organize spatial files
 mkdir -p spatial
 mv tissue_positions.csv scalefactors_json.json spatial/
 ```
 
-- In some cases, you might need to export lib path by ```export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/nsong/anaconda3/envs/gigapath/lib/``` (remember to change to your envs)
-
+Run preprocessing:
 ```bash
 python preprocessing/preprocessing_auto.py --root /coh_labs/dits/nsong/manuscript/SPA1_D
 ```
 
-- Train the Model
+> **Note:** If you encounter library errors, export the lib path:
+> ```bash
+> export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/nsong/anaconda3/envs/gigapath/lib/
+> ```
 
+### 3. Train the Model
 ```bash
 cd TME_aware_model/
-sbatch run_ddp_usr.sh   --data-root /coh_labs/dits/nsong/manuscript/SPA1_D --metadata-csv metadata.csv --tissue-positions-csv tissue_positions.csv --batch-size 12 --num-epochs 5 --learning-rate 3e-5 --weight-decay 1e-5 --temperature 0.07 --num-local 15 --num-global 0 --local-distance 400 --embed-dim 256 --proj-dim 128 --seed 42 --save-dir-base checkpoints/
-```
-- Eval the Model
 
+sbatch run_ddp_usr.sh \
+    --data-root /coh_labs/dits/nsong/manuscript/SPA1_D \
+    --metadata-csv metadata.csv \
+    --tissue-positions-csv tissue_positions.csv \
+    --batch-size 12 \
+    --num-epochs 5 \
+    --learning-rate 3e-5 \
+    --weight-decay 1e-5 \
+    --temperature 0.07 \
+    --num-local 15 \
+    --num-global 0 \
+    --local-distance 400 \
+    --embed-dim 256 \
+    --proj-dim 128 \
+    --seed 42 \
+    --save-dir-base checkpoints/
+```
+
+### 4. Evaluate the Model
 ```bash
-sbatch run_visualization.sh --data-root /coh_labs/dits/nsong/manuscript/SPA1_D --metadata-csv metadata.csv --model-path /coh_labs/dits/nsong/manuscript/DiSCoTME/TME_aware_model/checkpoints/geneattn_ddp_20251207_150949/final_model.pth --output-dir /coh_labs/dits/nsong/manuscript/SPA1_D/results --output-suffix e5
+sbatch run_visualization.sh \
+    --data-root /coh_labs/dits/nsong/manuscript/SPA1_D \
+    --metadata-csv metadata.csv \
+    --model-path /coh_labs/dits/nsong/manuscript/DiSCoTME/TME_aware_model/checkpoints/geneattn_ddp_20251207_150949/final_model.pth \
+    --output-dir /coh_labs/dits/nsong/manuscript/SPA1_D/results \
+    --output-suffix e5
 ```
 
-- Final output
+### 5. Output
+
+Final clustering results will be saved at:
 ```
 /coh_labs/dits/nsong/manuscript/SPA1_D/results/k6/fused_clusters_e5.csv
 ```
