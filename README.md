@@ -38,7 +38,7 @@ python preprocessing/preprocessing_auto.py --root /coh_labs/dits/nsong/manuscrip
 NEW OPTION: user determined fixed gene order for training.
 ### Usage
 ```bash
-python scripts/prepare_test_data.py --root /coh_labs/dits/nsong/manuscript/J13 --gene_list /path/to/gene_list.csv 
+python scripts/preprocessing_usr_list.py --root /coh_labs/dits/nsong/manuscript/J13 --gene_list /path/to/gene_list.csv 
 ```
 
 ### Arguments
