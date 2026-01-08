@@ -33,7 +33,47 @@ mv tissue_positions.csv scalefactors_json.json spatial/
 
 Run preprocessing:
 ```bash
-python preprocessing/preprocessing_auto.py --root /coh_labs/dits/nsong/manuscript/SPA1_D
+python preprocessing/preprocessing_auto.py --root /coh_labs/dits/nsong/manuscript/J13
+```
+NEW OPTION: user determined fixed gene order for training.
+### Usage
+```bash
+python scripts/prepare_test_data.py --root /coh_labs/dits/nsong/manuscript/J13 --gene_list /path/to/gene_list.csv 
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `--root` | Yes | Path to Visium data directory (containing `filtered_feature_bc_matrix.h5` and `spatial/` folder) |
+| `--gene_list` | No | CSV file with gene names in the first column (header: `Name`). Genes will be ordered as listed. If not provided, top 2000 highly variable genes are used. |
+| `--wsi` | No | Path to WSI image (.tif). Auto-detected if not specified. |
+| `--radius` | No | Patch radius in pixels. Inferred from `scalefactors_json.json` if not specified. |
+| `--out` | No | Output directory. Defaults to `--root` if not specified. |
+
+### Gene List Format
+
+The gene list CSV should have a column named `Name`:
+```
+Name
+BRCA1
+TP53
+EGFR
+CD8A
+...
+```
+
+### Output Structure
+```
+output_dir/
+├── metadata.csv        # spot_id, image_path, gene_vector_path
+├── image/
+│   ├── BARCODE1.jpg
+│   ├── BARCODE2.jpg
+│   └── ...
+└── genes/
+    ├── BARCODE1.npy
+    ├── BARCODE2.npy
 ```
 
 > **Note:** If you encounter library errors, export the lib path:
