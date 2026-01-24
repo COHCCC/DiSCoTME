@@ -4,11 +4,11 @@ This script prepares Visium datasets for downstream training by aligning high-re
 
 ### Usage
 ```bash
-# Example with a custom gene list
-python scripts/preprocessing_usr_list.py --root /coh_labs/dits/nsong/manuscript/J13 --gene_list /path/to/gene_list.csv 
+# Option A: Default HVG selection (using log-normalized data)
+python scripts/preprocessing.py --root /path/to/spaceranger_outs/ --n_genes 2000
 
-# Example using default top 2000 HVGs
-python scripts/preprocessing_usr_list.py --root /coh_labs/dits/nsong/manuscript/J13
+# Option B: Seurat_v3 HVG selection (using raw counts)
+python scripts/preprocessing.py --root /path/to/spaceranger_outs/ --hvg_method seurat_v3 --n_genes 3000
 ```
 
 ### Arguments
@@ -16,7 +16,8 @@ python scripts/preprocessing_usr_list.py --root /coh_labs/dits/nsong/manuscript/
 | Argument | Required | Description |
 | :--- | :--- | :--- |
 | `--root` | **Yes** | Path to Visium directory (must contain `.h5` file and `spatial/` folder). |
-| `--gene_list` | No | CSV file with gene names in the first column (header: `Name`). If omitted, the top 2000 HVGs are used. |
+| `--hvg_method` | No | Selection flavor: default or seurat_v3. |
+| `--n_genes` | No | Number of highly variable genes to retain. (Default: 2000). |
 | `--wsi` | No | Path to WSI image (.tif). Auto-detected if not specified. |
 | `--radius` | No | Patch radius in pixels. Auto-inferred from `scalefactors_json.json` if omitted. |
 | `--out` | No | Output directory. Defaults to `--root`. |
