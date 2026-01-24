@@ -1,10 +1,20 @@
-TME_aware_model/*
+# Local configs (don't commit secrets/paths)
+configs/local_paths.sh
 
-!TME_aware_model/__init__.py
-!TME_aware_model/LongNet.py
-!TME_aware_model/global_local_main_usr.py
-!TME_aware_model/global_local_model.py
-!TME_aware_model/global_local_train.py
-!TME_aware_model/run_ddp_usr.sh
+# Outputs
+checkpoints/
+# SLURM Logs (所有位置)
+slurm_logs/
+**/slurm_logs/          
+**/slurm-*.out      
+**/slurm-*.err
+
+# Python
 __pycache__/
-eval/slurm_logs/
+*.pyc
+.eggs/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/

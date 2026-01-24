@@ -1,0 +1,40 @@
+# configs/default.yaml
+data:
+  root: "/path/to/your/data"
+  metadata_csv: "metadata.csv"
+  tissue_positions_csv: "tissue_positions.csv"
+  num_local: 15
+  num_global: 0
+  local_distance: 400
+
+model:
+  arch: "standard_discotme"
+  image_encoder_type: "gated_image_encoder"
+  image_backbone: "vit_dino_v1"
+  gene_encoder_type: "gated_gene_encoder"
+  embed_dim: 256
+  proj_dim: 128
+
+context:
+  preset: "LongNet_for_spatial"
+
+training:
+  batch_size: 12
+  num_epochs: 5
+  temperature: 0.07
+  weight_decay: 1e-5
+  seed: 42
+  use_distill: false
+  distill_weight: 0.0
+
+lr:
+  img_backbone: 1e-5
+  img_proj: 1e-4
+  img_context: 1e-4
+  gene_encoder: 3e-4
+  gene_proj: 1e-4
+  default: 1e-4
+
+output:
+  save_dir: "checkpoints"
+  run_name: null

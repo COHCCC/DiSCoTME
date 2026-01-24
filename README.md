@@ -1,67 +1,25 @@
-## Demo Data Pipeline (sanity check before submission)
+## Data Preprocessing
 
-### 1. Download Demo Data
-```bash
-# Transcriptome data from GEO
-wget -r -np -nd ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM8513nnn/GSM8513873/suppl/
+This script prepares Visium datasets for downstream training by aligning high-resolution WSI images with spatial transcriptomics data. It crops image patches for each spot and generates corresponding gene expression vectors.
 
-# H&E image from Hugging Face
-wget https://huggingface.co/datasets/nina-song/SPA1_D/resolve/main/Craig_SPA1_D.tif
-```
-
-### 2. Preprocessing
-
-For faster processing, allocate resources first:
-```bash
-salloc -n16 -p bigmem --mem=512G
-```
-
-Prepare the files:
-```bash
-# Decompress
-gunzip *.gz
-
-# Remove prefix
-for f in GSM8513873_SPA1_D_*; do
-    mv "$f" "${f#GSM8513873_SPA1_D_}"
-done
-
-# Organize spatial files
-mkdir -p spatial
-mv tissue_positions.csv scalefactors_json.json spatial/
-```
-
-Run preprocessing:
-```bash
-python preprocessing/preprocessing_auto.py --root /coh_labs/dits/nsong/manuscript/J13
-```
-NEW OPTION: user determined fixed gene order for training.
 ### Usage
 ```bash
+# Example with a custom gene list
 python scripts/preprocessing_usr_list.py --root /coh_labs/dits/nsong/manuscript/J13 --gene_list /path/to/gene_list.csv 
+
+# Example using default top 2000 HVGs
+python scripts/preprocessing_usr_list.py --root /coh_labs/dits/nsong/manuscript/J13
 ```
 
 ### Arguments
 
 | Argument | Required | Description |
-|----------|----------|-------------|
-| `--root` | Yes | Path to Visium data directory (containing `filtered_feature_bc_matrix.h5` and `spatial/` folder) |
-| `--gene_list` | No | CSV file with gene names in the first column (header: `Name`). Genes will be ordered as listed. If not provided, top 2000 highly variable genes are used. |
+| :--- | :--- | :--- |
+| `--root` | **Yes** | Path to Visium directory (must contain `.h5` file and `spatial/` folder). |
+| `--gene_list` | No | CSV file with gene names in the first column (header: `Name`). If omitted, the top 2000 HVGs are used. |
 | `--wsi` | No | Path to WSI image (.tif). Auto-detected if not specified. |
-| `--radius` | No | Patch radius in pixels. Inferred from `scalefactors_json.json` if not specified. |
-| `--out` | No | Output directory. Defaults to `--root` if not specified. |
-
-### Gene List Format
-
-The gene list CSV should have a column named `Name`:
-```
-Name
-BRCA1
-TP53
-EGFR
-CD8A
-...
-```
+| `--radius` | No | Patch radius in pixels. Auto-inferred from `scalefactors_json.json` if omitted. |
+| `--out` | No | Output directory. Defaults to `--root`. |
 
 ### Output Structure
 ```
@@ -76,194 +34,273 @@ output_dir/
     ├── BARCODE2.npy
 ```
 
-> **Note:** If you encounter library errors, export the lib path:
-> ```bash
-> export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/nsong/anaconda3/envs/gigapath/lib/
-> ```
+# DiSCoTME
 
-### 3. Train the Model
+**Di**lated **S**patial **Co**ntrastive Learning for **T**umor **M**icro**E**nvironment Analysis
+
+A multimodal deep learning framework that integrates spatial transcriptomics with histopathology imaging using adaptive gated fusion and dilated attention mechanisms.
+
+## Installation
 ```bash
-cd TME_aware_model/
-
-sbatch run_ddp_usr.sh \
-    --data-root /coh_labs/dits/nsong/manuscript/SPA1_D \
-    --metadata-csv metadata.csv \
-    --tissue-positions-csv tissue_positions.csv \
-    --batch-size 12 \
-    --num-epochs 5 \
-    --learning-rate 3e-5 \
-    --weight-decay 1e-5 \
-    --temperature 0.07 \
-    --num-local 15 \
-    --num-global 0 \
-    --local-distance 400 \
-    --embed-dim 256 \
-    --proj-dim 128 \
-    --seed 42 \
-    --save-dir-base checkpoints/
+git clone https://github.com/xxx/DiSCoTME.git
+cd DiSCoTME
+pip install -r requirements.txt
 ```
 
-### 4. Evaluate the Model
+## Quick Start
 ```bash
-sbatch run_visualization.sh \
-    --data-root /coh_labs/dits/nsong/manuscript/SPA1_D \
-    --metadata-csv metadata.csv \
-    --model-path /coh_labs/dits/nsong/manuscript/DiSCoTME/TME_aware_model/checkpoints/geneattn_ddp_20251207_150949/final_model.pth \
-    --output-dir /coh_labs/dits/nsong/manuscript/SPA1_D/results \
-    --output-suffix e5
+# 1. Copy config and change data path
+cp configs/quick_start.yaml configs/my_config.yaml
+# Edit my_config.yaml: set data.root to your data folder
+
+# 2. Run training
+python scripts/run_train.py --config configs/my_config.yaml
 ```
 
-### 5. Output
+That's it! 🎉
 
-Final clustering results will be saved at:
-```
-/coh_labs/dits/nsong/manuscript/SPA1_D/results/k6/fused_clusters_e5.csv
-```
+---
 
-- [1. Introduction & Objectives](#1)
-- [2. File Structure](#2)
-- [3. Tasks & Workflows](#3)
+## Training
 
-## <h2 id="1"><font color=#00297D>1. Introduction & Objectives</font></h2>
-## <h2 id="2"><font color=#00297D>2. Tasks & Workflows</font></h2>
-## 2.1 Preprocessing
-The preprocessing module has been upgraded for fully automated Visium data handling. Users only need to provide a single directory that contains:
-
-- **H&E image** (`.tif` / `.tiff`)
-- **Visium output files** (`filtered_feature_bc_matrix.h5`, `spatial/tissue_positions.csv`, etc.)
-
-### The script will automatically:
-
-- Detect the spot diameter from 10x metadata
-- Segment the tissue and extract spot-aligned image patches
-- Compute highly variable genes (HVGs)
-- Generate a unified metadata file linking each spot to its coordinates, gene expression, and corresponding patch path
-
-### Usage
-Hint: 
-- If on HPC such as gemini, speed up this process by ```salloc -n16 -p bigmem --mem=512G``` (dont forget to exit after using)
-- Activate environment 
-- In some cases, you might need to export lib path by ```export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/nsong/anaconda3/envs/gigapath/lib/``` (remember to change to your envs)
-
+### Single GPU
 ```bash
-python preprocessing/preprocessing_auto.py --root /path/to/Visium_project
+python scripts/run_train.py --config configs/default.yaml
 ```
 
-### Output Structure
-
-```
-CRC_08_Tumor/
-├── metadata.csv                    # consolidated metadata
-├── image/                          # per-spot image crops
-├── genes/                          # filtered HVG expression matrix
-├── ...                             # Original files
-```
-
-## 2.2 Train the Model
-
-Train DiSCoTME using distributed data parallel (DDP, if request more than 1 node) on GPUs with contrastive learning.
-
-### Usage
+### Multi-GPU (Single Node)
 ```bash
-sbatch --job-name=job_name --partition=gpu-v100 --gres=gpu:2 --nodes=1 --ntasks-per-node=1 run_ddp_usr.sh \
-  --data-root /path/to/Visium_or_VisiumHD_project \
-  --metadata-csv metadata.csv \
-  --tissue-positions-csv tissue_positions.csv \
-  --batch-size 12 \
-  --num-epochs 5 \
-  --learning-rate 3e-5 \
-  --weight-decay 1e-5 \
-  --temperature 0.07 \
-  --num-local 15 \
-  --num-global 0 \
-  --embed-dim 256 \
-  --proj-dim 128 \
-  --seed 42 \
-  --local-distance 400 \
-  --save-dir-base checkpoints/test
+torchrun --nproc_per_node=4 scripts/run_train.py --config configs/default.yaml
 ```
 
-### Key Parameters
+### Command Line Override
 
-**Data Configuration:**
-- `--data-root`: Path to preprocessed data directory
-- `--metadata-csv`: Metadata file from preprocessing
-- `--tissue-positions-csv`: Spatial coordinates file
-
-**Training Settings:**
-- `--batch-size`: Number of samples per batch (12)
-- `--num-epochs`: Training epochs (5)
-- `--learning-rate`: Learning rate for optimizer (3e-5)
-- `--weight-decay`: L2 regularization (1e-5)
-
-**Contrastive Learning:**
-- `--temperature`: Temperature for contrastive loss (0.07)
-- `--num-local`: Number of local neighbors for positive pairs (15)
-- `--num-global`: Number of global samples (0 = disabled)
-- `--local-distance`: Maximum distance for local neighbors in pixels (400)
-
-**Model Architecture:**
-- `--embed-dim`: Embedding dimension (256)
-- `--proj-dim`: Projection head dimension (128)
-
-**Others:**
-- `--seed`: Random seed for reproducibility (42)
-- `--save-dir-base`: Directory to save model checkpoints
-
-### SLURM Configuration
-
-- `--job-name`: Job identifier
-- `--partition`: GPU partition (gpu-v100)
-- `--gres`: GPU resources (2 GPUs)
-- `--nodes`: Number of compute nodes (1)
-- `--ntasks-per-node`: Tasks per node (1)
-
-
-## 2.3 Evaluate and Visualize
-
-Generate embeddings and visualizations for the trained model.
-
-### Usage
-
+Any config value can be overridden via command line:
 ```bash
-sbatch run_visualization.sh \
-  --data-root /path/to/Visium_project \
-  --metadata-csv /path/to/Visium_project/metadata.csv \
-  --model-path DiSCoTME/TME_aware_model/checkpoints/test/job_name_with_time_stamp/final_model.pth \
-  --output-dir /path/to/Visium_project/results \
-  --output-suffix e5
+torchrun --nproc_per_node=4 scripts/run_train.py \
+    --config configs/default.yaml \
+    --batch-size 16 \
+    --num-epochs 100 \
+    --temperature 0.05
 ```
 
-### Parameters
+---
 
-**Input Data:**
-- `--data-root`: Path to the preprocessed data directory
-- `--metadata-csv`: Path to the consolidated metadata file
+## Key Parameters
 
-**Model:**
-- `--model-path`: Path to the trained model checkpoint (`.pth` file under TME_aware_model/save-dir-base path)
+### Most Commonly Tuned
 
-**Output:**
-- `--output-dir`: Directory to save evaluation results and visualizations
-- `--output-suffix`: Suffix for output files (e.g., 'e5' for epoch 5)
+| Parameter | CLI Flag | Default | Description |
+|-----------|----------|---------|-------------|
+| Temperature | `--temperature` | 0.07 | InfoNCE temperature. Lower = sharper distribution |
+| Batch size | `--batch-size` | 12 | Per-GPU batch size |
+| Epochs | `--num-epochs` | 50 | Training epochs |
+| Local neighbors | `--num-local` | 15 | Spatial neighbors per spot |
 
-### Expected Outputs
+### Learning Rates
 
-The script will generate in the output directory:
-- Spot embeddings extracted from the trained model (image/gene/fused embeddings)
-- Kmeans clustering (k=4-10) based on spot embeddings
+Different components use different learning rates for optimal training:
 
-### Usage in Loupe browser or Seurat
-The output CSV file contains barcodes and their corresponding clusters, formatted for direct integration with Seurat:
+| Parameter | CLI Flag | Default | Description |
+|-----------|----------|---------|-------------|
+| Image backbone | `--lr-img-backbone` | 1e-5 | Pretrained ViT/GigaPath, tune slowly |
+| Image projection | `--lr-img-proj` | 1e-4 | Projection layers |
+| Image context | `--lr-img-context` | 1e-4 | Dilated attention |
+| Gene encoder | `--lr-gene-encoder` | 3e-4 | Learns from scratch, can be faster |
+| Gene projection | `--lr-gene-proj` | 1e-4 | Final projection |
 
-Example: ```/path/to/Visium_or_VisiumHD_project/results/k6/fused_clusters_e5.csv```
+Example - adjust learning rates:
+```bash
+torchrun --nproc_per_node=4 scripts/run_train.py \
+    --config configs/default.yaml \
+    --lr-img-backbone 5e-6 \
+    --lr-gene-encoder 1e-4 \
+    --temperature 0.1
 ```
-Barcode                    Cluster
-GTCACTTCCTTCTAGA-1        1
-CACGGTCTCCTTACGA-1        4
-ATAGCTGCGGATAAGA-1        4
-GTCAGTATGTCCGGCG-1        1
-ATGTACCAGTTACTCG-1        4
-ACGCTCAGTGCACCGT-1        4
+
+---
+
+## Available Modules
+
+### Model Architectures (`--model-arch`)
+
+| Name | Description |
+|------|-------------|
+| `standard_discotme` | **Default.** Contrastive learning with gated fusion |
+| `factorized_discotme` | FactorCL variant with shared/unique decomposition |
+
+### Image Encoders (`--image-encoder-type`)
+
+| Name | Description |
+|------|-------------|
+| `gated_image_encoder` | **Default.** Adaptive gate for identity-context fusion |
+| `multiscale_image_encoder` | Concat-based fusion |
+
+### Image Backbones (`--image-backbone`)
+
+| Name | Model | Speed | Notes |
+|------|-------|-------|-------|
+| `vit_dino_v1` | ViT-S/16 DINO | ⚡ Fast | **Default.** Good for most cases |
+| `gigapath_frozen_v1` | GigaPath | 🐢 Slow | Pathology-pretrained, requires HF token |
+| `gigapath_with_confidence` | GigaPath + confidence | 🐢 Slow | For distillation |
+| `vit_dino_with_confidence` | DINO + confidence | ⚡ Fast | For distillation |
+
+### Gene Encoders (`--gene-encoder-type`)
+
+| Name | Description |
+|------|-------------|
+| `gated_gene_encoder` | **Default.** MLP + residual + adaptive gate |
+| `gene_mlp_residual` | MLP with full residual connection |
+| `gene_mlp_weighted_residual` | MLP with 0.1 weighted residual |
+| `gene_transformer_intra` | Transformer-based encoder |
+| `gene_identity_transformer` | Per-gene embedding + transformer |
+| `gene_simple_linear` | Simple linear projection (baseline) |
+
+### Dilated Attention Presets (`--context-config`)
+
+| Name | Layers | Heads | Use Case |
+|------|--------|-------|----------|
+| `LongNet_for_spatial` | 4 | 8 | **Default.** Standard Visium |
+| `LongNet_for_spots` | 4 | 8 | Same as above |
+| `LongNet_for_large_spatial` | 8 | 16 | Visium HD / large datasets |
+| `LongNet_8_layers_256_dim` | 8 | 16 | Deep model |
+
+---
+
+## Configuration
+
+### Minimal Config
+```yaml
+# configs/quick_start.yaml
+data:
+  root: "/path/to/your/data"
 ```
-This CSV can be directly loaded in RStudio and added to a Seurat object as metadata for downstream visualization and analysis.
+
+### Full Config
+```yaml
+# configs/default.yaml
+data:
+  root: "/path/to/your/data"
+  metadata_csv: "metadata.csv"
+  tissue_positions_csv: "tissue_positions.csv"
+  num_local: 15
+  num_global: 0
+  local_distance: 400
+
+model:
+  arch: "standard_discotme"
+  image_encoder_type: "gated_image_encoder"
+  image_backbone: "vit_dino_v1"
+  gene_encoder_type: "gated_gene_encoder"
+  embed_dim: 256
+  proj_dim: 128
+
+context:
+  preset: "LongNet_for_spatial"
+
+training:
+  batch_size: 12
+  num_epochs: 50
+  temperature: 0.07
+  weight_decay: 1e-5
+  seed: 42
+  use_distill: false
+  distill_weight: 0.0
+
+lr:
+  img_backbone: 1e-5
+  img_proj: 1e-4
+  img_context: 1e-4
+  gene_encoder: 3e-4
+  gene_proj: 1e-4
+  default: 1e-4
+
+output:
+  save_dir: "checkpoints"
+  run_name: null
+```
+
+### Custom Dilated Attention
+```yaml
+context:
+  preset: null  # disable preset
+  custom:
+    encoder_layers: 6
+    encoder_embed_dim: 256
+    encoder_ffn_embed_dim: 1024
+    encoder_attention_heads: 8
+    dilated_ratio: "[1, 2, 4, 8]"
+    segment_length: "[1000, 2000, 4000, 8000]"
+    dropout: 0.1
+    drop_path_rate: 0.1
+```
+
+---
+
+## Data Format
+```
+data_root/
+├── metadata.csv
+├── tissue_positions.csv
+├── patches/
+│   ├── sample1_AAACAAGTATCTCCCA-1.png
+│   └── ...
+└── gene_expression/
+    ├── sample1.h5ad
+    └── ...
+```
+
+### metadata.csv
+```csv
+sample_id,spot_id,patch_path,gene_path
+sample1,AAACAAGTATCTCCCA-1,patches/sample1_AAACAAGTATCTCCCA-1.png,gene_expression/sample1.h5ad
+sample1,AAACAATCTACTAGCA-1,patches/sample1_AAACAATCTACTAGCA-1.png,gene_expression/sample1.h5ad
+...
+```
+
+### tissue_positions.csv
+```csv
+sample_id,spot_id,x,y
+sample1,AAACAAGTATCTCCCA-1,1024,2048
+sample1,AAACAATCTACTAGCA-1,1124,2048
+...
+```
+
+---
+
+## SLURM Cluster
+
+For City of Hope HPC users, see `scripts/run_ddp.sh` as a template.
+
+Key modifications needed:
+- `--partition`: Your cluster's GPU partition
+- `--gres`: GPU type (e.g., `gpu:v100:4`, `gpu:a100:4`)
+- Conda environment path
+- Data paths
+```bash
+# Copy and modify for your cluster
+cp scripts/run_ddp.sh scripts/my_cluster.sh
+# Edit the script, then submit
+sbatch scripts/slurm/my_cluster.sh
+```
+
+---
+
+## Outputs
+
+Training outputs are saved to `checkpoints/<run_name>/`:
+```
+checkpoints/standard_discotme_20250123_143052/
+├── config.yaml           # Full config (for reproducibility)
+├── best_model.pth        # Best model weights
+├── final_model.pth       # Final model weights
+├── checkpoint_epoch5.pth # Periodic checkpoints
+├── checkpoint_epoch10.pth
+└── loss_history.json     # Training loss curve
+```
+
+
+
+## License
+
+MIT License

@@ -1,0 +1,11 @@
+context:
+  preset: null  # disable preset
+  custom:
+    encoder_layers: 6
+    encoder_embed_dim: 256
+    encoder_ffn_embed_dim: 1024
+    encoder_attention_heads: 8
+    dilated_ratio: "[1, 2, 4, 8]"
+    segment_length: "[1000, 2000, 4000, 8000]"
+    dropout: 0.1
+    drop_path_rate: 0.1
