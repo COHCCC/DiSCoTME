@@ -1,3 +1,10 @@
+## Installation
+```bash
+git clone https://github.com/COHCCC/DiSCoTME.git
+cd DiSCoTME
+pip install -r requirements.txt
+```
+
 ## Data Preprocessing
 
 This script prepares Visium datasets for downstream training by aligning high-resolution WSI images with spatial transcriptomics data. It crops image patches for each spot and generates corresponding gene expression vectors.
@@ -35,23 +42,10 @@ output_dir/
     ├── BARCODE2.npy
 ```
 
-# DiSCoTME
-
-**Di**lated **S**patial **Co**ntrastive Learning for **T**umor **M**icro**E**nvironment Analysis
-
-A multimodal deep learning framework that integrates spatial transcriptomics with histopathology imaging using adaptive gated fusion and dilated attention mechanisms.
-
-## Installation
-```bash
-git clone https://github.com/xxx/DiSCoTME.git
-cd DiSCoTME
-pip install -r requirements.txt
-```
-
 ## Quick Start
 ```bash
 # 1. Copy config and change data path
-cp configs/quick_start.yaml configs/my_config.yaml
+cp configs/default.yaml configs/my_config.yaml
 # Edit my_config.yaml: set data.root to your data folder
 
 # 2. Run training
@@ -66,12 +60,12 @@ That's it! 🎉
 
 ### Single GPU
 ```bash
-python scripts/run_train.py --config configs/default.yaml
+python scripts/run_train.py --config configs/my_config.yaml
 ```
 
 ### Multi-GPU (Single Node)
 ```bash
-torchrun --nproc_per_node=4 scripts/run_train.py --config configs/default.yaml
+torchrun --nproc_per_node=4 scripts/run_train.py --config configs/my_config.yaml
 ```
 
 ### Command Line Override
@@ -172,7 +166,6 @@ torchrun --nproc_per_node=4 scripts/run_train.py \
 
 ### Minimal Config
 ```yaml
-# configs/quick_start.yaml
 data:
   root: "/path/to/your/data"
 ```
@@ -236,42 +229,10 @@ context:
     drop_path_rate: 0.1
 ```
 
----
-
-## Data Format
-```
-data_root/
-├── metadata.csv
-├── tissue_positions.csv
-├── patches/
-│   ├── sample1_AAACAAGTATCTCCCA-1.png
-│   └── ...
-└── gene_expression/
-    ├── sample1.h5ad
-    └── ...
-```
-
-### metadata.csv
-```csv
-sample_id,spot_id,patch_path,gene_path
-sample1,AAACAAGTATCTCCCA-1,patches/sample1_AAACAAGTATCTCCCA-1.png,gene_expression/sample1.h5ad
-sample1,AAACAATCTACTAGCA-1,patches/sample1_AAACAATCTACTAGCA-1.png,gene_expression/sample1.h5ad
-...
-```
-
-### tissue_positions.csv
-```csv
-sample_id,spot_id,x,y
-sample1,AAACAAGTATCTCCCA-1,1024,2048
-sample1,AAACAATCTACTAGCA-1,1124,2048
-...
-```
-
----
 
 ## SLURM Cluster
 
-For City of Hope HPC users, see `scripts/run_ddp.sh` as a template.
+For City of Hope HPC users and internal test, see `scripts/run_ddp.sh` as a template.
 
 Key modifications needed:
 - `--partition`: Your cluster's GPU partition
@@ -280,9 +241,16 @@ Key modifications needed:
 - Data paths
 ```bash
 # Copy and modify for your cluster
-cp scripts/run_ddp.sh scripts/my_cluster.sh
+cp scripts/run_ddp.sh scripts/run_my_cluster.sh
+```
+Change 
+```
+DATASET_NAME="CRC_07_Tumor"
+DATA_ROOT="/path/to/dataset/${DATASET_NAME}"
+```
 # Edit the script, then submit
-sbatch scripts/slurm/my_cluster.sh
+```
+sbatch scripts/run_my_cluster.sh
 ```
 
 ---
