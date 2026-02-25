@@ -22,18 +22,18 @@ training:
   batch_size: 12
   num_epochs: 5
   temperature: 0.07
-  weight_decay: 1e-5
   seed: 42
   use_distill: false
   distill_weight: 0.0
+  weight_decay: 0.00001  
 
 lr:
-  img_backbone: 1e-5
-  img_proj: 1e-4
-  img_context: 1e-4
-  gene_encoder: 3e-4
-  gene_proj: 1e-4
-  default: 1e-4
+  img_backbone: 0.00001   
+  img_proj: 0.0001      
+  img_context: 0.0001
+  gene_encoder: 0.0003   
+  gene_proj: 0.0001
+  default: 0.0001
 
 output:
   save_dir: "checkpoints"

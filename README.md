@@ -51,7 +51,8 @@ mv scalefactors_json.json spatial/
 # H&E image from Hugging Face
 wget https://huggingface.co/datasets/nina-song/SPA1_D/resolve/main/Craig_SPA1_D.tif
 ```
-# Required Input Data Structure for DiSCoTME
+## Required Input Data Structure
+```
 demo_data/
 ├── filtered_feature_bc_matrix.h5
 ├── WSI.tif
@@ -59,6 +60,7 @@ demo_data/
 │   ├── tissue_positions.csv
 │   └── scalefactors_json.json
 └── ...
+```
 
 ## Installation
 1. Create Environment
@@ -78,6 +80,7 @@ pip install torch==2.4.1 torchvision==0.19.1 --index-url https://download.pytorc
 pip install timm==1.0.22
 ```
 3. Install torchscale
+
 **Option A: Standard installation** (works on most systems)
 ```bash
 pip install git+https://github.com/microsoft/torchscale.git@4d1e0e82e5adf86dd424f1463192635b73fc8efc --no-deps
@@ -136,13 +139,13 @@ output_dir/
     ├── BARCODE2.npy
 ```
 
-## Internal testing: SLURM Cluster (**will be removed before submission**)
+## Internal testing: SLURM Cluster (will be REMOVED BEFORE submission)
 
 For HPC users running on SLURM-managed clusters:
 
 1. **Copy and edit the template:**
 ```bash
-cp scripts/run_ddp.sh scripts/run_my_cluster.sh
+cp scripts/run_train_slurm.sh scripts/run_my_cluster.sh
 ```
 
 2. **Modify the USER CONFIGURATION section at the top:**
