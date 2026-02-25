@@ -370,6 +370,10 @@ python run_eval_with_alpha.py \
 2. Expected Outputs
 * k[4-10]/: Directories containing .csv cluster assignments for post-training embeddings (Image, Gene, and Fused (more details about fusing can be found in online method section)).
 * alpha_weights_e5.csv: Learned alpha weights per spot. A per-spot gating coefficient preserves sharp local gradients for distinct motifs (fidelity mode) while smoothing noise in homogeneous regions (denoising mode).
-## License
 
-MIT License
+## Citation
+
+If you find DiSCoTME useful in your research, please cite:
+```
+Song, N., & Craig, D. (2026). Using multi-scale spatial integration of histology and transcriptomics to discover hidden tumor microenvironment motifs
+```
