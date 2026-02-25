@@ -14,6 +14,7 @@
 # torchscale==0.2.0
 einops==0.8.0
 fairscale==0.4.0
+xformers==0.0.28
 # === Spatial Transcriptomics ===
 scanpy>=1.10.0
 

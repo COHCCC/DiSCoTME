@@ -29,55 +29,6 @@ cd -
 # Install remaining dependencies
 pip install -r requirements.txt
 ```
-3. Install Flash-Attention (Required for Training)
-
-Standard Installation (Try This First)
-```bash
-pip install flash-attn --no-build-isolation
-```
-If this works, you're done! If you encounter errors (common on HPC clusters), follow the guide below.
-Flash-Attention Installation for HPC/Cluster Users
-On High-Performance Computing (HPC) environments, a standard pip install flash-attn often fails due to:
-
-* GLIBC Mismatch: Pre-built wheels require GLIBC_2.32+, while clusters often run older versions
-* Compiler Issues: Outdated system GCC (e.g., GCC 4.8 or 7.x) whereas flash-attn needs GCC 9.0+
-* Environment Quirks: git might be a containerized alias (Singularity/Docker), making it invisible to pip's build process
-
-Follow these steps to build from source:
-* Step 1: Download Flash-Attention Source
-On a login node (or any node with internet access), clone the repository:
-```bash
-git clone --recursive https://github.com/Dao-AILab/flash-attention.git
-cd flash-attention
-git checkout v2.8.3
-```
-* Step 2: Set Up a Modern Compiler Environment
-Use Conda to provide a modern C++ compiler, bypassing outdated cluster libraries:
-```bash
-conda install -c conda-forge gxx_linux-64=11.2.0 sysroot_linux-64=2.28 -y
-```
-* Step 3: Load CUDA and Prepare Build Environment
-```bash
-# Load your cluster's CUDA module (adjust version as needed)
-module load cuda/12.3.2
-
-# Create a dummy git script to bypass submodule update checks
-mkdir -p t_bin && printf '#!/bin/sh\nexit 0' > t_bin/git && chmod +x t_bin/git
-
-# Set CUDA path
-export CUDA_HOME=$(dirname $(dirname $(which nvcc)))
-```
-
-* Step 4: Build and Install
-```bash
-CC=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc \
-CXX=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++ \
-PATH=$(pwd)/t_bin:$PATH:$CUDA_HOME/bin \
-FLASH_ATTENTION_FORCE_BUILD=TRUE \
-MAX_JOBS=4 \
-pip install . --no-deps
-```
-Note: Building from source is computationally intensive. It usually takes 15+ minutes. Please ensure your cluster session has enough time remaining (walltime) to avoid being killed mid-build.
 
 ## Data Preprocessing
 
@@ -122,16 +73,7 @@ output_dir/
 cp configs/default.yaml configs/my_config.yaml
 # Edit my_config.yaml: set data.root to your data folder
 
-# 2. Run training
-python scripts/run_train.py --config configs/my_config.yaml
-```
-
-That's it! 🎉
-
----
-
 ## Training
-
 ### Single GPU
 ```bash
 python scripts/run_train.py --config configs/my_config.yaml
@@ -196,14 +138,14 @@ torchrun --nproc_per_node=4 scripts/run_train.py \
 | Name | Description |
 |------|-------------|
 | `standard_discotme` | **Default.** Contrastive learning with gated fusion |
-| `factorized_discotme` | FactorCL variant with shared/unique decomposition |
+
 
 ### Image Encoders (`--image-encoder-type`)
 
 | Name | Description |
 |------|-------------|
 | `gated_image_encoder` | **Default.** Adaptive gate for identity-context fusion |
-| `multiscale_image_encoder` | Concat-based fusion |
+
 
 ### Image Backbones (`--image-backbone`)
 
@@ -211,8 +153,7 @@ torchrun --nproc_per_node=4 scripts/run_train.py \
 |------|-------|-------|-------|
 | `vit_dino_v1` | ViT-S/16 DINO | ⚡ Fast | **Default.** Good for most cases |
 | `gigapath_frozen_v1` | GigaPath | 🐢 Slow | Pathology-pretrained, requires HF token |
-| `gigapath_with_confidence` | GigaPath + confidence | 🐢 Slow | For distillation |
-| `vit_dino_with_confidence` | DINO + confidence | ⚡ Fast | For distillation |
+
 
 ### Gene Encoders (`--gene-encoder-type`)
 
@@ -230,7 +171,6 @@ torchrun --nproc_per_node=4 scripts/run_train.py \
 | Name | Layers | Heads | Use Case |
 |------|--------|-------|----------|
 | `LongNet_for_spatial` | 4 | 8 | **Default.** Standard Visium |
-| `LongNet_for_spots` | 4 | 8 | Same as above |
 | `LongNet_for_large_spatial` | 8 | 16 | Visium HD / large datasets |
 | `LongNet_8_layers_256_dim` | 8 | 16 | Deep model |
 
@@ -310,7 +250,7 @@ For City of Hope HPC users and internal test, see `scripts/run_ddp.sh` as a temp
 
 Key modifications needed:
 - `--partition`: Your cluster's GPU partition
-- `--gres`: GPU type (e.g., `gpu:v100:4`, `gpu:a100:4`)
+- `--gres`: GPU type (e.g., `gpu:v100-dev:4`)
 - Conda environment path
 - Data paths
 ```bash
