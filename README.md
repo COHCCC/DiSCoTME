@@ -119,25 +119,25 @@ Key modifications needed:
 # Copy and modify for your cluster
 cp scripts/run_ddp.sh scripts/run_my_cluster.sh
 ```
-**important.** replace dataset name
+**Important.** Replace dataset name
 ```
 DATASET_NAME="SPA_1D"
 DATA_ROOT="/path/to/dataset/${DATASET_NAME}"
 ```
-# Edit the script, then submit
+Edit the script, then submit
 ```
 sbatch scripts/run_my_cluster.sh
 ```
 
 
-## Quick Start
+## Training: Quick Start
+1. Copy config
+2. Edit my_config.yaml: set data.root to your data folder
 ```bash
-# 1. Copy config and change data path
 cp configs/default.yaml configs/my_config.yaml
-# Edit my_config.yaml: set data.root to your data folder
+```
 
-## Training
-### Single GPU
+### Single-GPU
 ```bash
 python scripts/run_train.py --config configs/my_config.yaml
 ```
