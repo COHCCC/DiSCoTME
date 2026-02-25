@@ -136,28 +136,41 @@ output_dir/
     ├── BARCODE2.npy
 ```
 
-## Internal testing: SLURM Cluster (will be removed before submission)
+## Internal testing: SLURM Cluster (**will be removed before submission**)
 
-For City of Hope HPC users and internal test, see `scripts/run_ddp.sh` as a template.
+For HPC users running on SLURM-managed clusters:
 
-Key modifications needed:
-- `--partition`: Your cluster's GPU partition
-- `--gres`: GPU type (e.g., `gpu:v100-dev:4`)
-- Conda environment path
-- Data paths
+1. **Copy and edit the template:**
 ```bash
-# Copy and modify for your cluster
 cp scripts/run_ddp.sh scripts/run_my_cluster.sh
 ```
-**Important.** Replace dataset name
+
+2. **Modify the USER CONFIGURATION section at the top:**
+```bash
+# =============================================================================
+# USER CONFIGURATION - MODIFY THESE
+# =============================================================================
+
+PROJECT_ROOT="/path/to/DiSCoTME"      # Full path to your DiSCoTME directory
+CONDA_ENV="discotme"                   # Your conda environment name
+DATA_ROOT="/path/to/your/data"         # Full path to preprocessed data
+META_CSV="metadata.csv"                # Metadata filename
+POS_CSV="tissue_positions.csv" # Tissue positions path
 ```
-DATASET_NAME="SPA_1D"
-DATA_ROOT="/path/to/dataset/${DATASET_NAME}"
+
+3. **Adjust SLURM settings as needed:**
+```bash
+#SBATCH --partition=gpu-v100-dev         # Your cluster's GPU partition
+#SBATCH --gres=gpu:4             # Number of GPUs (e.g., gpu:v100:4)
+#SBATCH --mail-user=your@email   # Your email for notifications
 ```
-Edit the script, then submit
-```
+
+4. **Submit the job:**
+```bash
 sbatch scripts/run_my_cluster.sh
 ```
+
+> **Note**: Training arguments (batch size, epochs, learning rate, etc.) can be modified in the `ARGS` array within the script.
 
 
 ## Training: Quick Start
