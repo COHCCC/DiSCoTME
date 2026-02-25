@@ -18,8 +18,10 @@ Jiarong Song1, Bohan Zhang1, Rayyan Aburajab1, Jing Qian2, Rania Bassiouni1, Joh
 
 ## Input / Output
 
-- **Input**: 10x Visium spatial transcriptomics (gene expression + H&E image + spot coordinates)
-- **Output**: Spatially-aware joint embeddings for unsupervised motif discovery—revealing tissue structures
+| | Description |
+|---|---|
+| **Input** | 10x Visium spatial transcriptomics data with matched H&E whole slide image and spot coordinates |
+| **Output** | Joint histology-gene embeddings that capture cross-modal correspondence and multi-scale spatial context, enabling unsupervised discovery of microenvironmental motifs invisible to either modality alone
 
 <p align="center">
   <img src="assets/overview.png" width="90%"> <br>
