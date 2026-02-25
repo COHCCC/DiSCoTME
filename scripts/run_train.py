@@ -1,5 +1,23 @@
 # scripts/run_train.py
-import os, sys, json, random
+"""
+DiSCoTME Training Script with YAML Configuration Support
+
+Usage:
+    # Using YAML config (recommended)
+    python -m torch.distributed.run --nproc_per_node=4 scripts/run_train.py --config configs/default.yaml
+    
+    # Override specific parameters
+    python -m torch.distributed.run --nproc_per_node=4 scripts/run_train.py --config configs/default.yaml --batch-size 32
+    
+    # CLI only (without config file)
+    python -m torch.distributed.run --nproc_per_node=4 scripts/run_train.py --data-root /path/to/data
+"""
+
+import os
+import sys
+import json
+import random
+import copy
 from datetime import datetime, timedelta
 import argparse
 import numpy as np
@@ -13,7 +31,7 @@ from torch.utils.data.distributed import DistributedSampler
 import yaml
 
 # ==============================================================================
-# 路径修复
+# Path Setup
 # ==============================================================================
 current_script_path = os.path.abspath(__file__)
 scripts_dir = os.path.dirname(current_script_path)
@@ -26,7 +44,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # ==============================================================================
-# 导入
+# Imports
 # ==============================================================================
 try:
     from src.data.dataset import MultiScaleContextDataset
@@ -43,7 +61,7 @@ except ImportError:
 
 
 # ==============================================================================
-# 默认配置
+# Default Configuration
 # ==============================================================================
 DEFAULT_CONFIG = {
     # --- Data ---
@@ -79,14 +97,14 @@ DEFAULT_CONFIG = {
         'use_distill': False,
         'distill_weight': 0.0,
     },
-    # --- Learning Rates (关键调参项) ---
+    # --- Learning Rates (key hyperparameters) ---
     'lr': {
-        'img_backbone': 1e-5,      # 预训练backbone，慢慢调
+        'img_backbone': 1e-5,      # Pretrained backbone, use low lr
         'img_proj': 1e-4,
         'img_context': 1e-4,
-        'gene_encoder': 3e-4,      # 从头学，可以快一点
+        'gene_encoder': 3e-4,      # Train from scratch, can use higher lr
         'gene_proj': 1e-4,
-        'default': 1e-4,           # fallback
+        'default': 1e-4,           # Fallback
     },
     # --- Output ---
     'output': {
@@ -96,8 +114,11 @@ DEFAULT_CONFIG = {
 }
 
 
+# ==============================================================================
+# Configuration Utilities
+# ==============================================================================
 def deep_update(base_dict, update_dict):
-    """递归更新嵌套字典"""
+    """Recursively update nested dictionary"""
     if update_dict is None:
         return base_dict
     for key, value in update_dict.items():
@@ -109,7 +130,7 @@ def deep_update(base_dict, update_dict):
 
 
 def load_yaml_config(config_path):
-    """加载 YAML 配置文件"""
+    """Load YAML configuration file"""
     if config_path and os.path.exists(config_path):
         with open(config_path, 'r') as f:
             return yaml.safe_load(f) or {}
@@ -123,7 +144,7 @@ def parse_args():
         epilog="""
 Examples:
   # Minimal (YAML config)
-  python run_train.py --config configs/quick_start.yaml
+  python run_train.py --config configs/default.yaml
   
   # Command line only
   python run_train.py --data-root /path/to/data
@@ -163,7 +184,7 @@ Examples:
     p.add_argument("--config-path", type=str, default=None,
                    help="Path to custom dilated attention YAML")
     
-    # === Training (常调参数) ===
+    # === Training (commonly tuned parameters) ===
     p.add_argument("--batch-size", type=int, default=None)
     p.add_argument("--num-epochs", type=int, default=None)
     p.add_argument("--temperature", type=float, default=None,
@@ -171,7 +192,7 @@ Examples:
     p.add_argument("--weight-decay", type=float, default=None)
     p.add_argument("--seed", type=int, default=None)
     
-    # === Learning Rates (关键调参项，单独暴露) ===
+    # === Learning Rates (key hyperparameters, exposed separately) ===
     p.add_argument("--lr-img-backbone", type=float, default=None,
                    help="Learning rate for image backbone (default: 1e-5)")
     p.add_argument("--lr-img-proj", type=float, default=None,
@@ -198,17 +219,16 @@ Examples:
 
 def build_config(args):
     """
-    构建最终配置：DEFAULT -> YAML -> CLI
-    优先级：CLI > YAML > DEFAULT
+    Build final configuration: DEFAULT -> YAML -> CLI
+    Priority: CLI > YAML > DEFAULT
     """
-    import copy
     config = copy.deepcopy(DEFAULT_CONFIG)
     
-    # 1. 加载 YAML 配置
+    # 1. Load YAML config
     yaml_config = load_yaml_config(args.config)
     config = deep_update(config, yaml_config)
     
-    # 2. CLI 覆盖 (只覆盖非 None 的值)
+    # 2. CLI overrides (only override non-None values)
     cli_overrides = {
         'data': {
             'root': args.data_root,
@@ -253,7 +273,7 @@ def build_config(args):
         },
     }
     
-    # 递归覆盖，但只覆盖非 None 的值
+    # Recursively apply overrides, only for non-None values
     def apply_cli_overrides(base, overrides):
         for key, value in overrides.items():
             if isinstance(value, dict):
@@ -268,46 +288,54 @@ def build_config(args):
     return config
 
 
+# ==============================================================================
+# Optimizer Builder
+# ==============================================================================
 def build_optimizer(base_model, config, encoder_type="gated"):
     """
-    根据 config['lr'] 构建 optimizer
+    Build optimizer based on config['lr']
+    Compatible with both Standard and Factorized model architectures
     """
     lr_config = config['lr']
     weight_decay = config['training']['weight_decay']
     param_groups = []
     
     if encoder_type == "gated":
-        # === Gated Encoder 的参数分组 ===
+        # ============================================
+        # Gated Encoder parameter groups (DINO fully unfrozen)
+        # ============================================
         
-        # 1. Image Backbone
+        # 1. Image Backbone (DINO) - fully unfrozen but with low lr
         param_groups.append({
             'params': base_model.img_encoder.image_encoder.backbone.parameters(),
             'lr': lr_config.get('img_backbone', 1e-5),
             'name': 'img_backbone'
         })
         
-        # 2. Image Projection
+        # 2. Image Projection (inside Encoder)
         param_groups.append({
             'params': base_model.img_encoder.image_encoder.proj.parameters(),
             'lr': lr_config.get('img_proj', 1e-4),
             'name': 'img_proj'
         })
         
-        # 3. Image Context Processor
+        # 3. Image Context Processor (Dilated + Gate)
         param_groups.append({
             'params': base_model.img_encoder.context_processor.parameters(),
             'lr': lr_config.get('img_context', 1e-4),
             'name': 'img_context'
         })
         
-        # 4. Gene Encoder
+        # 4. Gene Encoder (all parameters)
         param_groups.append({
             'params': base_model.gene_encoder.parameters(),
             'lr': lr_config.get('gene_encoder', 3e-4),
             'name': 'gene_encoder'
         })
         
-        # 5. Final Projections (兼容 Standard 和 Factorized)
+        # 5. Final Projections (compatible with Standard and Factorized)
+        
+        # Standard version: img_proj, gene_proj
         if hasattr(base_model, 'img_proj'):
             param_groups.append({
                 'params': base_model.img_proj.parameters(),
@@ -315,6 +343,7 @@ def build_optimizer(base_model, config, encoder_type="gated"):
                 'name': 'img_final_proj'
             })
         
+        # Factorized version: img_proj_shared, img_proj_unique
         if hasattr(base_model, 'img_proj_shared'):
             param_groups.append({
                 'params': base_model.img_proj_shared.parameters(),
@@ -328,6 +357,7 @@ def build_optimizer(base_model, config, encoder_type="gated"):
                 'name': 'img_proj_unique'
             })
         
+        # Factorized version: Decoders
         if hasattr(base_model, 'decoder_shared'):
             param_groups.append({
                 'params': base_model.decoder_shared.parameters(),
@@ -341,6 +371,7 @@ def build_optimizer(base_model, config, encoder_type="gated"):
                 'name': 'decoder_unique'
             })
         
+        # Gene Final Proj (both versions have this)
         param_groups.append({
             'params': base_model.gene_proj.parameters(),
             'lr': lr_config.get('gene_proj', 1e-4),
@@ -348,7 +379,9 @@ def build_optimizer(base_model, config, encoder_type="gated"):
         })
         
     elif encoder_type == "gigapath_confidence":
-        # === GigaPath + Confidence Head ===
+        # ============================================
+        # GigaPath + Confidence Head version
+        # ============================================
         default_lr = lr_config.get('default', 1e-4)
         
         param_groups.append({
@@ -388,7 +421,9 @@ def build_optimizer(base_model, config, encoder_type="gated"):
         })
     
     else:
-        # === 通用版本 ===
+        # ============================================
+        # Generic version: all parameters with same lr
+        # ============================================
         default_lr = lr_config.get('default', 1e-4)
         param_groups.append({
             'params': base_model.parameters(),
@@ -400,13 +435,16 @@ def build_optimizer(base_model, config, encoder_type="gated"):
     return optimizer
 
 
+# ==============================================================================
+# Main Training Function
+# ==============================================================================
 def main():
     args = parse_args()
     
-    # === 构建最终配置 ===
+    # === Build final configuration ===
     config = build_config(args)
     
-    # === 验证必需参数 ===
+    # === Validate required parameters ===
     if config['data']['root'] is None:
         print("ERROR: data.root is required. Use --data-root or set in config YAML.")
         sys.exit(1)
@@ -579,7 +617,7 @@ def main():
 
     if global_rank == 0:
         os.makedirs(save_dir, exist_ok=True)
-        # 保存完整配置
+        # Save full configuration
         with open(os.path.join(save_dir, "config.yaml"), "w") as f:
             yaml.dump(config, f, default_flow_style=False)
         print(f"\n[Output] Checkpoints: {save_dir}")
@@ -608,7 +646,7 @@ def main():
                 temperature=temperature
             )
         
-        # Gather Loss
+        # Gather Loss across all ranks
         loss_tensor = torch.tensor([rank_avg], dtype=torch.float, device=device)
         dist.all_reduce(loss_tensor, op=dist.ReduceOp.AVG)
         global_avg = loss_tensor.item()
@@ -616,6 +654,9 @@ def main():
         if global_rank == 0:
             loss_hist.append(global_avg)
             print(f"Epoch {epoch+1}/{config['training']['num_epochs']} | Loss: {global_avg:.4f}")
+            
+            # Note: scheduler.step() is only called on rank 0 to maintain consistency
+            # with internal testing. This is a known issue but kept for reproducibility.
             scheduler.step()
             
             if global_avg < best_avg_loss:

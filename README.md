@@ -33,11 +33,32 @@ Jiarong Song, Bohan Zhang, Rayyan Aburajab, Jing Qian, Rania Bassiouni, John J.Y
 ## Download Test Data
 ```bash
 # Transcriptome data from GEO
-wget -r -np -nd ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM8513nnn/GSM8513873/suppl/
+mkdir -p demo_data
+wget -r -np -nd -P demo_data ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM8513nnn/GSM8513873/suppl/
+
+cd demo_data
+gunzip *.gz
+
+# Remove unnecessary headings
+for f in GSM8513873_SPA1_D_*; do
+    mv "$f" "${f#GSM8513873_SPA1_D_}"
+done
+
+mkdir -p spatial
+mv tissue_positions.csv spatial/
+mv scalefactors_json.json spatial/
 
 # H&E image from Hugging Face
 wget https://huggingface.co/datasets/nina-song/SPA1_D/resolve/main/Craig_SPA1_D.tif
 ```
+# Required Input Data Structure for DiSCoTME
+demo_data/
+├── filtered_feature_bc_matrix.h5
+├── WSI.tif
+├── spatial/
+│   ├── tissue_positions.csv
+│   └── scalefactors_json.json
+└── ...
 
 ## Installation
 1. Create Environment
@@ -75,6 +96,8 @@ cd -
 ```bash
 pip install -r requirements.txt
 ```
+
+> **Note**: You may see a warning about `torchscale 0.2.0 requires timm==0.6.13`. This can be safely ignored as we install torchscale with `--no-deps` to use our required timm version.
 
 ## Data Preprocessing
 
@@ -221,8 +244,8 @@ torchrun --nproc_per_node=4 scripts/run_train.py \
 
 | Name | Model | Speed | Notes |
 |------|-------|-------|-------|
-| `vit_dino_v1` | ViT-S/16 DINO | Fast | **Default.** Good for most cases |
-| `gigapath_frozen_v1` | GigaPath | Slow | Pathology-pretrained, requires HF token. Options for user who wants to dig into more morphological features. Note: due to heavy-weight of the package, the image encoder model backbone is freezed |
+| `vit_dino_v1` | ViT-S/16 DINO | Fast | **Default.** Good for most cases, fine-tuned end to end |
+| `gigapath_frozen_v1` | GigaPath | Slow | Pathology-pretrained, requires HF token. Options for user who wants to dig into more morphological features. Note: due to heavy-weight of the package, the image encoder model backbone is freezed for this option |
 
 
 ### Gene Encoders (`--gene-encoder-type`)
