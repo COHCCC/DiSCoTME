@@ -22,7 +22,7 @@ Jiarong Song1, Bohan Zhang1, Rayyan Aburajab1, Jing Qian2, Rania Bassiouni1, Joh
 - **Output**: Joint image-gene embeddings for downstream analysis (clustering, visualization, hidden microenvironmental motifs discovery)
 
 <p align="center">
-  <img src="images/gigapath_overview.png" width="90%"> <br>
+  <img src="assets/overview.png" width="90%"> <br>
 
   *Overview of DiSCoTME model architecture*
 
