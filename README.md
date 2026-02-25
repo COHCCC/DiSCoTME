@@ -1,3 +1,42 @@
+# DiSCoTME (Dilated Spatial Context for the Tumor Microenvironment)
+
+## Using multi-scale spatial integration of histology and transcriptomics to discover hidden tumor microenvironment motifs
+
+Jiarong Song1, Bohan Zhang1, Rayyan Aburajab1, Jing Qian2, Rania Bassiouni1, John J.Y. Lee1, John D. Carpten1, David W. Craig1*
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Model Overview
+**DiSCoTME** (Dilated Spatial Context for the Tumor Microenvironment) is a dual-encoder deep learning framework that jointly learns from H&E histology images and gene expression profiles in spatial transcriptomics data. By combining multi-scale dilated attention with contrastive learning, DiSCoTME produces unified, spatially informed embeddings that capture tissue organization across multiple spatial scales.
+
+## Key Features
+
+- **Multi-modal integration**: Aligns histology images with gene expression in a shared embedding space
+- **Multi-scale spatial context**: Dilated attention captures from local coposition to micro-anatomical structures to global context
+- **Adaptive gating**: Automatically balances local identity vs. neighborhood context per spot
+- **Unsupervised discovery**: Learned embeddings enable clustering of microenvironmental motifs without manual annotation
+
+## Input / Output
+
+- **Input**: 10x Visium spatial transcriptomics data with matched H&E whole slide image and spots' spatial locations
+- **Output**: Joint image-gene embeddings for downstream analysis (clustering, visualization, hidden microenvironmental motifs discovery)
+
+<p align="center">
+  <img src="images/gigapath_overview.png" width="90%"> <br>
+
+  *Overview of DiSCoTME model architecture*
+
+</p>
+
+## Download Test Data
+```bash
+# Transcriptome data from GEO
+wget -r -np -nd ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM8513nnn/GSM8513873/suppl/
+
+# H&E image from Hugging Face
+wget https://huggingface.co/datasets/nina-song/SPA1_D/resolve/main/Craig_SPA1_D.tif
+```
+
 ## Installation
 1. Create Environment
 ```bash
@@ -7,7 +46,7 @@ git clone https://github.com/COHCCC/DiSCoTME.git
 cd DiSCoTME
 ```
 
-Install core packages:
+2. Install core packages and dependencies:
 ```bash
 # Install PyTorch with CUDA 12.1
 pip install torch==2.4.1 torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cu121
@@ -66,6 +105,30 @@ output_dir/
     ├── BARCODE1.npy
     ├── BARCODE2.npy
 ```
+
+## Internal testing: SLURM Cluster (will be removed before submission)
+
+For City of Hope HPC users and internal test, see `scripts/run_ddp.sh` as a template.
+
+Key modifications needed:
+- `--partition`: Your cluster's GPU partition
+- `--gres`: GPU type (e.g., `gpu:v100-dev:4`)
+- Conda environment path
+- Data paths
+```bash
+# Copy and modify for your cluster
+cp scripts/run_ddp.sh scripts/run_my_cluster.sh
+```
+**important.** replace dataset name
+```
+DATASET_NAME="SPA_1D"
+DATA_ROOT="/path/to/dataset/${DATASET_NAME}"
+```
+# Edit the script, then submit
+```
+sbatch scripts/run_my_cluster.sh
+```
+
 
 ## Quick Start
 ```bash
@@ -244,7 +307,7 @@ context:
 ```
 
 
-## SLURM Cluster
+## Internal testing: SLURM Cluster
 
 For City of Hope HPC users and internal test, see `scripts/run_ddp.sh` as a template.
 
@@ -257,9 +320,9 @@ Key modifications needed:
 # Copy and modify for your cluster
 cp scripts/run_ddp.sh scripts/run_my_cluster.sh
 ```
-Change 
+**important.** replace dataset name
 ```
-DATASET_NAME="CRC_07_Tumor"
+DATASET_NAME="SPA_1D"
 DATA_ROOT="/path/to/dataset/${DATASET_NAME}"
 ```
 # Edit the script, then submit
@@ -282,8 +345,31 @@ checkpoints/standard_discotme_20250123_143052/
 └── loss_history.json     # Training loss curve
 ```
 
+## Model Evaluation & Interpretation
+After training, you can use the following script to perform inference, generate spatial clusters, and extract the Alpha weights
 
+1. Run Evaluation
+This script will extract multi-modal embeddings from your Visium data and perform K-Means clustering across multiple scales.
+```bash
+python run_eval_with_alpha.py \
+    --data-root /path/to/your/visium_data/ \
+    --model-path /path/to/checkpoints/best_model.pth \
+    --output-dir ./eval_results/ \
+    --device cuda \
+    --batch-size 64 \
+    --num-workers 4
+```
 
+| Name | Description |
+|------|-------------|
+| `data-root` | Path to the directory containing tissue_positions.csv and image patches |
+| `model-path` | **important.** Must point to the specific .pth file, not just the folder. |
+| `output-dir` | Where clustering results and alpha weights will be saved |
+| `device` | Set to cuda to leverage GPU |
+
+2. Expected Outputs
+* k[4-10]/: Directories containing .csv cluster assignments for post-training embeddings (Image, Gene, and Fused (more details about fusing can be found in online method section)).
+* alpha_weights_e5.csv: Learned alpha weights per spot. A per-spot gating coefficient preserves sharp local gradients for distinct motifs (fidelity mode) while smoothing noise in homogeneous regions (denoising mode).
 ## License
 
 MIT License
