@@ -2,7 +2,7 @@
 
 ## Using multi-scale spatial integration of histology and transcriptomics to discover hidden tumor microenvironment motifs
 
-Jiarong Song1, Bohan Zhang1, Rayyan Aburajab1, Jing Qian2, Rania Bassiouni1, John J.Y. Lee1, John D. Carpten1, David W. Craig1*
+Jiarong Song, Bohan Zhang, Rayyan Aburajab, Jing Qian, Rania Bassiouni, John J.Y. Lee, John D. Carpten, David W. Craig*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
