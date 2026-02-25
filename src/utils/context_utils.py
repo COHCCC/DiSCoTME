@@ -15,11 +15,11 @@ def build_spot_contexts_fast(df, num_local, num_global, local_distance):
     all_spots = list(spot_ids)
 
     for i, (target_id, target_pos) in enumerate(zip(spot_ids, coords)):
-        # 1) local candidates (ball query) 并排除自身
+        # 1) local candidates (ball query) 
         idxs_local_from_ball = tree.query_ball_point(target_pos, r=local_distance)
         local_candidates_indices = [idx for idx in idxs_local_from_ball if idx != i]
 
-        # 2) 根据距离排序
+        # 2) sort local candidates by distance and take top num_local
         if not local_candidates_indices:
             sorted_pairs = []
         else:

@@ -15,7 +15,7 @@
 mkdir -p slurm_logs
 echo "=== [Step 1] Environment Setup ==="
 
-# 1. 路径设置 (混合策略)
+# 1. Path Settings (Hybrid Strategy)
 MY_HARDCODED_PATH="/coh_labs/dits/nsong/manuscript/DiSCoTME_2026"
 
 if [ -n "${DISCOTME_HOME}" ]; then
@@ -23,7 +23,7 @@ if [ -n "${DISCOTME_HOME}" ]; then
 else
     SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
     DYNAMIC_ROOT=$(dirname "$SCRIPT_DIR")
-    # 检查 eval 脚本是否存在
+    # Check if eval script exists
     if [ -f "${DYNAMIC_ROOT}/eval/run_eval_with_alpha.py" ]; then
         export PROJECT_ROOT="${DYNAMIC_ROOT}"
     else
@@ -34,7 +34,7 @@ fi
 PY_ENTRY="${PROJECT_ROOT}/eval/run_eval_with_alpha.py"
 export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"
 
-# 2. Conda 环境激活
+# 2. Conda Environment Activation
 : "${CONDA_BASE_DIR:=${HOME}/anaconda3}"
 : "${CONDA_ENV:=gigapath}"
 if [ -f "${CONDA_BASE_DIR}/etc/profile.d/conda.sh" ]; then
@@ -44,15 +44,16 @@ conda activate "${CONDA_ENV}"
 export LD_LIBRARY_PATH="/usr/lib64:/usr/lib64/nvidia:${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${CONDA_PREFIX}/lib"
 
 # =========================================================
-# === [Step 2] Default Arguments (可被命令行覆盖) ===
+# === [Step 2] Default Arguments (Overrideable via CLI) ===
 # =========================================================
-# 默认数据集和检查点
-DATASET_NAME="CRC_07_Tumor"
-CHECKPOINT_DIR="CRC_07_Tumor_dino_gated_n15_20260122_180207"
+# Default dataset and checkpoint
+DATASET_NAME="SPA6_A"
+CHECKPOINT_DIR="SPA6_A_dino_gated_n15_20260212_231110"
 
 DEFAULT_DATA_ROOT="/coh_labs/dits/nsong/manuscript/${DATASET_NAME}"
 DEFAULT_MODEL_PATH="${PROJECT_ROOT}/checkpoints/${CHECKPOINT_DIR}/best_model.pth"
-DEFAULT_OUTPUT_DIR="${DEFAULT_DATA_ROOT}/results/eval/dino_gated_n15"
+DEFAULT_OUTPUT_DIR="${DEFAULT_DATA_ROOT}/results/eval/dino_gated_n15_w_emb"
+
 # =========================================================
 # === [Step 3] Run Evaluation ===
 # =========================================================
@@ -67,7 +68,7 @@ python "${PY_ENTRY}" \
   --tissue-positions-csv "tissue_positions.csv" \
   --model-path "$DEFAULT_MODEL_PATH" \
   --output-dir "$DEFAULT_OUTPUT_DIR" \
-  --output-suffix "fact_e10" \
+  --output-suffix "gated_e5" \
   --device "cuda" \
   \
   --model-arch "standard_discotme" \

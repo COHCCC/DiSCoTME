@@ -12,16 +12,15 @@ from fairscale.nn import checkpoint_wrapper, wrap
 
 # ------------------------------
 # (1) 2D Position Embedding
-# Renamed from: twoD_sin_cos_emb_batch -> compute_2d_sincos_pos_embed
 # ------------------------------
 def compute_2d_sincos_pos_embed(positions, embed_dim=256, device=None):
     """
-    生成 2D 位置编码，遵循 ViT/Transformer 通用公式:
+    Generates 2D position embeddings following the standard ViT/Transformer formula:
       PE(pos, 2i)   = sin( pos / 10000^(2i/d) )
       PE(pos, 2i+1) = cos( pos / 10000^(2i/d) )
 
-    参数:
-      positions: [batch_size, 2] 或 [batch_size, n_spots, 2]
+    Args:
+      positions: [batch_size, 2] or [batch_size, n_spots, 2]
     """
     if len(positions.shape) == 3:
         # [B, N, 2]
@@ -36,16 +35,16 @@ def compute_2d_sincos_pos_embed(positions, embed_dim=256, device=None):
 
     device = device or positions.device
 
-    # 最终输出大小: [B*N, embed_dim]
+    # Output size: [B*N, embed_dim]
     half_dim = embed_dim // 2
     row_vals = positions[:, 0]  # [B*N]
     col_vals = positions[:, 1]  # [B*N]
 
-    # 分别对 row/col 做 1D 的 sin-cos 编码
+    # Apply 1D sin-cos encoding to row and col separately
     row_emb = _get_1d_sin_cos_vit(row_vals, half_dim, device)
     col_emb = _get_1d_sin_cos_vit(col_vals, half_dim, device)
 
-    # 拼接 => [B*N, embed_dim]
+    # Concatenate => [B*N, embed_dim]
     pos_emb = torch.cat([row_emb, col_emb], dim=1)
 
     if reshape_back:
@@ -72,7 +71,7 @@ def _get_1d_sin_cos_vit(pos, dim, device=None):
     return emb
 
 # ------------------------------
-# (2) Config Dicts (Renamed)
+# (2) Config Dicts
 # ------------------------------
 
 DilatedConfig_8layers_256dim = {
@@ -143,7 +142,7 @@ DilatedConfigs = {
     "LongNet_8_layers_256_dim": DilatedConfig_8layers_256dim,
     "LongNet_for_spots": DilatedConfig_Spots,
     "LongNet_for_large_spatial": DilatedConfig_LargeSpatial,
-    "LongNet_for_spatial": DilatedConfig_Spatial # Keep old key for compatibility
+    "LongNet_for_spatial": DilatedConfig_Spatial 
 }
 
 # ------------------------------
@@ -180,7 +179,6 @@ class DilatedEncoder(Encoder):
 
 # ------------------------------
 # (4) Builder Function
-# Renamed from: make_longnet_from_name -> build_dilated_transformer
 # ------------------------------
 def build_dilated_transformer(config_name: str,
                               dilated_ratio: str='[1, 2, 3, 4]',  

@@ -35,13 +35,13 @@ class MultiScaleContextDataset(Dataset):
             )
             overall_init_start_time = time.time()
 
-        # 2) 读取元数据
+        # 2) Load Metadata
         if is_rank_0: t_start = time.time()
         meta_path = os.path.join(self.root_dir, metadata_csv)
         self.df_meta = pd.read_csv(meta_path)
         if is_rank_0: print(f"Time to load df_meta: {time.time() - t_start:.2f}s", flush=True)
 
-        # 3) 读取空间位置数据
+        # 3) Load Spatial Position Data
         if is_rank_0: t_start = time.time()
         if tissue_positions_csv.endswith('.parquet'):
             import pyarrow.parquet as pq
@@ -59,7 +59,7 @@ class MultiScaleContextDataset(Dataset):
             ]
         if is_rank_0: print(f"Time to load df_spatial: {time.time() - t_start:.2f}s", flush=True)
 
-        # 4) 合并
+        # 4) Merge Dataframes
         if is_rank_0: t_start = time.time()
         self.df = pd.merge(self.df_meta, self.df_spatial, on="spot_id", how="inner")
         if is_rank_0: print(f"Time to merge dataframes: {time.time() - t_start:.2f}s", flush=True)
@@ -67,7 +67,7 @@ class MultiScaleContextDataset(Dataset):
         if is_rank_0:
             print(f"Dataset contains {len(self.df)} valid spots after merge.", flush=True)
 
-        # 5) 坐标处理与归一化
+        # 5) Coordinate Processing and Normalization
         if is_rank_0: t_start = time.time()
         self.df['pxl_row_in_fullres'] = pd.to_numeric(self.df['pxl_row_in_fullres'], errors='coerce')
         self.df['pxl_col_in_fullres'] = pd.to_numeric(self.df['pxl_col_in_fullres'], errors='coerce')
@@ -95,7 +95,7 @@ class MultiScaleContextDataset(Dataset):
 
         if is_rank_0: print(f"Time for df column processing and normalization: {time.time() - t_start:.2f}s", flush=True)
 
-        # 6) 构建上下文
+        # 6) Build Spot Contexts
         if is_rank_0:
             print("Building spot contexts using build_spot_contexts_fast...", flush=True)
             build_contexts_start_time = time.time()

@@ -24,36 +24,36 @@ if [ -n "${DISCOTME_HOME}" ]; then
     echo "[Info] Using provided env var DISCOTME_HOME"
     export PROJECT_ROOT="${DISCOTME_HOME}"
 else
-    # 尝试动态获取
+    # Try dynamic detection
     SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
     DYNAMIC_ROOT=$(dirname "$SCRIPT_DIR")
     
-    # 检查动态获取的路径里有没有核心文件
+    # Check if the dynamically detected path contains core files
     if [ -f "${DYNAMIC_ROOT}/scripts/run_train_internal_test.py" ]; then
         echo "[Info] Auto-detected project root: ${DYNAMIC_ROOT}"
         export PROJECT_ROOT="${DYNAMIC_ROOT}"
     else
-        # 动态获取失败 (说明在 SLURM Spool 里)，使用硬编码保底
+        # Dynamic detection failed (likely running in SLURM spool), use hardcoded fallback
         echo "[Warn] Dynamic detection failed (likely SLURM spool). Using hardcoded fallback."
         export PROJECT_ROOT="${MY_HARDCODED_PATH}"
     fi
 fi
 
-# 最后的安全检查
+# Final safety check
 if [ ! -d "$PROJECT_ROOT" ]; then
     echo "CRITICAL ERROR: Project root not found at: '$PROJECT_ROOT'"
     echo "Please check if MY_HARDCODED_PATH is correct in the script."
     exit 1
 fi
 
-# 设置其他路径
+# Set other paths
 PY_ENTRY="${PROJECT_ROOT}/scripts/run_train_internal_test.py"
 export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"
 
 echo "Project Root: ${PROJECT_ROOT}"
 echo "Py Entry:     ${PY_ENTRY}"
 
-# === Conda 环境激活 ===
+# === Conda Environment Activation ===
 : "${CONDA_BASE_DIR:=${HOME}/anaconda3}"
 : "${CONDA_ENV:=gigapath}"
 
@@ -73,15 +73,15 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# === 环境变量 & 路径 ===
+# === Environment Variables & Paths ===
 export LD_LIBRARY_PATH="/usr/lib64:/usr/lib64/nvidia:${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${CONDA_PREFIX}/lib"
 export HF_HOME=/coh_labs/dits/nsong/.cache/huggingface
 export HUGGING_FACE_HUB_TOKEN="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"
 
-# === 分布式网络配置 ===
+# === Distributed Network Configuration ===
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_PORT=$((29512 + ($SLURM_JOB_ID % 1000)))
-# 这里的 GPUS_PER_NODE 自动获取 SBATCH 配置 (你的例子是4)
+# GPUS_PER_NODE is automatically obtained from SBATCH config (4 in your example)
 GPUS_PER_NODE="${SLURM_GPUS_ON_NODE:-${SLURM_GPUS_PER_NODE:-4}}"
 
 echo "Master Addr: $MASTER_ADDR"
@@ -90,52 +90,52 @@ echo "GPUs/Node:   $GPUS_PER_NODE"
 echo "Python Path: $(which python)"
 
 # =========================================================
-# === [Step 2] Training Arguments (在这里修改参数) ===
+# === [Step 2] Training Arguments (Modify parameters here) ===
 # =========================================================
 
-DATASET_NAME="CRC_07_Tumor"
+DATASET_NAME="SPA6_A"
 DATA_ROOT="/coh_labs/dits/nsong/manuscript/${DATASET_NAME}"
 META_CSV="metadata.csv" 
 POS_CSV="tissue_positions.csv"
 
-# 2. 动态生成 Run Name
-# [修改] 更新 Tag 以区分之前的 Standard 实验
+# 2. Dynamically generate Run Name
+# [Modified] Updated Tag to distinguish from previous Standard experiments
 MODEL_TAG="dino_gated"
 EXTRA_TAG="n15"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RUN_NAME="${DATASET_NAME}_${MODEL_TAG}_${EXTRA_TAG}_${TIMESTAMP}"
 
-# 3. 定义通用的保存根目录
+# 3. Define common save root directory
 SAVE_BASE="${PROJECT_ROOT}/checkpoints"
 
 echo "Experiment Name: $RUN_NAME"
 echo "Save Path:       $SAVE_BASE/$RUN_NAME"
 
-# ARGS 数组
+# ARGS array
 ARGS=(
-  # --- 数据路径 ---
+  # --- Data Paths ---
   --data-root "$DATA_ROOT"
   --metadata-csv "$META_CSV"
   --tissue-positions-csv "$POS_CSV"
   
-  # --- [动态路径] ---
+  # --- [Dynamic Paths] ---
   --save-dir-base "$SAVE_BASE"
   --run-name "$RUN_NAME"
   
-  # --- 基础训练超参 ---
+  # --- Basic Training Hyperparameters ---
   --batch-size 12
   --num-epochs 5
   --learning-rate 1e-4
   --temperature 0.07
   --seed 42
   
-  # --- 数据采样 ---
+  # --- Data Sampling ---
   --num-local 15
   --num-global 0
   --local-distance 400
   
-  # --- 模型架构 (CRITICAL CHANGE) ---
-  # 选项: "standard_discotme" (旧) | "factorized_discotme" (新, 带重建)
+  # --- Model Architecture (CRITICAL CHANGE) ---
+  # Options: "standard_discotme" (old) | "factorized_discotme" (new, with reconstruction)
   --model-arch "standard_discotme"
 
   --image-encoder-type "gated_image_encoder"
@@ -143,13 +143,13 @@ ARGS=(
   --gene-encoder-type "gated_gene_encoder"
   --context-config "LongNet_for_spatial"
   
-  # --- 维度 ---
+  # --- Dimensions ---
   --embed-dim 256
   --proj-dim 128
   
-  # --- 蒸馏/重建权重 ---
-  # 注意：在 Factorized 模式下，Recon 权重目前在 trainer.py 里硬编码为 1.0
-  # 如果之后想在这里调参，需要修改 run_train.py 传入 kwargs
+  # --- Distillation/Reconstruction Weights ---
+  # Note: In Factorized mode, Recon weight is currently hardcoded as 1.0 in trainer.py
+  # If you want to tune this parameter here later, you need to modify run_train.py to pass kwargs
   # --distill-weight 0.0 
 )
 
@@ -160,7 +160,7 @@ ARGS=(
 echo "Starting torchrun..."
 echo "Entry Point: ${PY_ENTRY}"
 
-# srun 启动器
+# srun launcher
 srun --label --export=ALL --gres=gpu:${GPUS_PER_NODE} \
   $(which torchrun) \
   --nnodes="${SLURM_NNODES}" \
@@ -170,7 +170,7 @@ srun --label --export=ALL --gres=gpu:${GPUS_PER_NODE} \
   --rdzv_endpoint="${MASTER_ADDR}:${MASTER_PORT}" \
   "${PY_ENTRY}" \
   "${ARGS[@]}" \
-  "$@" # 允许命令行追加额外参数覆盖上面的 ARGS
+  "$@" # Allow command line to append additional arguments to override ARGS above
 
 EXIT_CODE=$?
 echo "Job finished with exit code $EXIT_CODE"

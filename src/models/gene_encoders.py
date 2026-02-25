@@ -7,12 +7,65 @@ from .registry import GENE_ENCODERS
 from .multi_scale_blocks import MultiScaleAwareEncoder
 
 # ==========================================
-# 1. [CURRENT ACTIVE] MLP 带残差
+# 1. [[Model default]  Gated Gene Encoder with MLP + Residuals
+# ==========================================
+@GENE_ENCODERS.register("gated_gene_encoder")
+class FidelityGatedGeneEncoder(nn.Module):
+    """
+    Adaptive Gated Gene Encoder:
+    - Uses MLP + Residuals to extract cellular identity.
+    - Uses LongNet to extract spatial ecosystem (Niche) information.
+    - Returns fused features and alpha_gene fidelity weights.
+    """
+    def __init__(self, gene_dim=2000, embed_dim=256, config_name="LongNet_for_spatial", config_dict=None, **kwargs):
+        super().__init__()
+        self.input_norm = nn.LayerNorm(gene_dim)
+        self.input_proj = nn.Linear(gene_dim, 512)
+        
+        # Optimized gene local encoder
+        self.mlp = nn.Sequential(
+            nn.Linear(512, 512),
+            nn.LayerNorm(512),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(512, 512),
+            nn.LayerNorm(512),
+        )
+        
+        # Spatial context processor (shares logic with image-side)
+        self.context_processor = MultiScaleAwareEncoder(
+            512, embed_dim, 
+            config_name=config_name, 
+            config_dict=config_dict,
+            use_gate=True
+        )
+        
+    def forward(self, target_gene, context_genes, target_pos, context_pos):
+        # --- 1. Normalization ---
+        target_gene = self.input_norm(target_gene)
+        B, C, D = context_genes.shape
+        context_genes_flat = self.input_norm(context_genes.reshape(B*C, D))
+        
+        # --- 2. Extract Local Identity (MLP + Residuals) ---
+        target_proj = self.input_proj(target_gene) 
+        target_feat = target_proj + self.mlp(target_proj)
+
+        context_proj = self.input_proj(context_genes_flat)
+        context_feat = context_proj + self.mlp(context_proj)
+        context_feat = context_feat.reshape(B, C, -1)
+
+        # --- 3. Fidelity-Gated Fusion ---
+        # Returns: Fused gene features, alpha_gene fidelity weight
+        fused_gene, alpha_gene = self.context_processor(target_feat, context_feat, target_pos, context_pos)
+        
+        return fused_gene, alpha_gene
+# ==========================================
+# 2.  MLP with Residuals
 # ==========================================
 @GENE_ENCODERS.register("gene_mlp_residual")
 class GeneEncoderMLPResidual(nn.Module):
     """
-    对应你代码中【未注释】的 ContextAwareGeneEncoder:
+    Standard ContextAwareGeneEncoder:
     - Input Norm -> Proj
     - Residual Connection: feat = proj + mlp(proj)
     """
@@ -40,22 +93,22 @@ class GeneEncoderMLPResidual(nn.Module):
         context_genes = self.input_norm(context_genes.reshape(B*C, D)).reshape(B, C, D)
         
         target_proj = self.input_proj(target_gene) 
-        target_feat = target_proj + self.mlp(target_proj)  # Residual Connection!
+        target_feat = target_proj + self.mlp(target_proj)  # Residual Connection
 
         context_proj = self.input_proj(context_genes.reshape(B*C, D))
-        context_feat = context_proj + self.mlp(context_proj)  # Residual Connection!
+        context_feat = context_proj + self.mlp(context_proj)  # Residual Connection
         context_feat = context_feat.reshape(B, C, -1)
 
         return self.context_processor(target_feat, context_feat, target_pos, context_pos)  
 
 
 # ==========================================
-# 2. [VARIANT] MLP 带权重残差 (0.1)
+# 3. [VARIANT] MLP with Weighted Residual (0.1)
 # ==========================================
 @GENE_ENCODERS.register("gene_mlp_weighted_residual")
 class GeneEncoderWeightedResidual(nn.Module):
     """
-    对应你注释掉的: "Gene encoder残差权重 1 → 0.1防治学习偏差"
+    Weighted residual version (0.1) to prevent learning bias.
     """
     def __init__(self, gene_dim=2000, embed_dim=256, config_name="LongNet_for_spatial", config_dict=None, **kwargs):
         super().__init__()
@@ -87,12 +140,12 @@ class GeneEncoderWeightedResidual(nn.Module):
 
 
 # ==========================================
-# 3. [VARIANT] Transformer Encoder (Github Version)
+# 4. [VARIANT] Transformer Encoder (Intra-spot)
 # ==========================================
 @GENE_ENCODERS.register("gene_transformer_intra")
 class GeneEncoderTransformerIntra(nn.Module):
     """
-    对应你注释掉的: "版本Github: 直接在512维做TransformerEncoder...目前在spa1上最make sense"
+    Direct TransformerEncoder on 512-dim features.
     """
     def __init__(self, gene_dim=512, embed_dim=256, num_heads=8, config_name="LongNet_for_spatial", config_dict=None, **kwargs):
         super().__init__()
@@ -120,12 +173,12 @@ class GeneEncoderTransformerIntra(nn.Module):
 
 
 # ==========================================
-# 4. [VARIANT] Gene Identity Transformer
+# 5. [VARIANT] Gene Identity Transformer
 # ==========================================
 @GENE_ENCODERS.register("gene_identity_transformer")
 class GeneEncoderIdentityTransformer(nn.Module):
     """
-    对应你注释掉的: "True transformer version with gene identity and weighted pooling"
+    Transformer version with gene identity and weighted pooling.
     """
     def __init__(self, gene_dim=200, embed_dim=256, num_heads=4, num_layers=2, 
                  config_name="LongNet_for_spatial", config_dict=None, **kwargs):
@@ -167,12 +220,12 @@ class GeneEncoderIdentityTransformer(nn.Module):
 
 
 # ==========================================
-# 5. [VARIANT] 模块化 MLP (Separate Class)
+# 6. [VARIANT] Modular MLP
 # ==========================================
 @GENE_ENCODERS.register("gene_mlp_modular")
 class GeneEncoderModular(nn.Module):
     """
-    对应你最后注释掉的: class GeneEncoder + class ContextAwareGeneEncoder
+    Modular implementation with internal GeneEncoder and ContextAware wrapper.
     """
     class _InnerGeneEncoder(nn.Module):
         def __init__(self, input_dim=512, hidden_dim=1024, output_dim=256, dropout=0.1):
@@ -218,12 +271,12 @@ class GeneEncoderModular(nn.Module):
 
 
 # ==========================================
-# 6. [VARIANT] 最原始版本 (Most Original)
+# 7. [VARIANT] Simple Linear Projection
 # ==========================================
 @GENE_ENCODERS.register("gene_simple_linear")
 class GeneEncoderSimple(nn.Module):
     """
-    对应你代码中最上面的注释: 简单的 Linear Projection
+    Baseline implementation with basic linear projection.
     """
     def __init__(self, gene_dim=512, embed_dim=256, config_name="LongNet_for_spatial", config_dict=None, **kwargs):
         super().__init__()
@@ -235,59 +288,6 @@ class GeneEncoderSimple(nn.Module):
         )
 
     def forward(self, target_gene, context_genes, target_pos, context_pos):
-        # 简单投影，无 MLP，无残差
+        # Basic projection without MLP or residuals
         return self.context_processor(target_gene, context_genes, target_pos, context_pos)
     
-# ==========================================
-# 6.(current) MultiScale Gene Encoder with gate (支持 config_dict)
-# ==========================================
-@GENE_ENCODERS.register("gated_gene_encoder")
-class FidelityGatedGeneEncoder(nn.Module):
-    """
-    自适应门控基因编码器：
-    - 使用 MLP+Residue 提取细胞身份
-    - 使用 LongNet 提取空间生态位 (Niche)
-    - 返回融合特征与 alpha_gene
-    """
-    def __init__(self, gene_dim=2000, embed_dim=256, config_name="LongNet_for_spatial", config_dict=None, **kwargs):
-        super().__init__()
-        self.input_norm = nn.LayerNorm(gene_dim)
-        self.input_proj = nn.Linear(gene_dim, 512)
-        
-        # 你验证过的最强基因局部编码器
-        self.mlp = nn.Sequential(
-            nn.Linear(512, 512),
-            nn.LayerNorm(512),
-            nn.GELU(),
-            nn.Dropout(0.1),
-            nn.Linear(512, 512),
-            nn.LayerNorm(512),
-        )
-        
-        # 空间上下文处理器 (复用图像侧同款逻辑)
-        self.context_processor = MultiScaleAwareEncoder(
-            512, embed_dim, 
-            config_name=config_name, 
-            config_dict=config_dict,
-            use_gate=True
-        )
-        
-    def forward(self, target_gene, context_genes, target_pos, context_pos):
-        # --- 1. 归一化 ---
-        target_gene = self.input_norm(target_gene)
-        B, C, D = context_genes.shape
-        context_genes_flat = self.input_norm(context_genes.reshape(B*C, D))
-        
-        # --- 2. 提取局部身份 (MLP + Residue) ---
-        target_proj = self.input_proj(target_gene) 
-        target_feat = target_proj + self.mlp(target_proj)
-
-        context_proj = self.input_proj(context_genes_flat)
-        context_feat = context_proj + self.mlp(context_proj)
-        context_feat = context_feat.reshape(B, C, -1)
-
-        # --- 3. 门控保真融合 ---
-        # 返回: 融合后的基因特征, 基因保真度 alpha_gene
-        fused_gene, alpha_gene = self.context_processor(target_feat, context_feat, target_pos, context_pos)
-        
-        return fused_gene, alpha_gene

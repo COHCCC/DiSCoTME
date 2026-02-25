@@ -12,7 +12,7 @@ from PIL import Image
 import scanpy as sc
 import tifffile
 
-# --- 工具函数 (保持不变) ---
+# --- Utility Functions (unchanged) ---
 
 def read_scalefactors(root_dir: str) -> dict:
     cands = [os.path.join(root_dir, "spatial", "scalefactors_json.json"),
@@ -77,34 +77,34 @@ def _normalize_rgb(arr):
         arr = a.astype(np.uint8)
     return Image.fromarray(arr).convert("RGB")
 
-# --- 核心逻辑 ---
+# --- Core Logic ---
 
 def produce_test_data(root_dir, wsi_path, radius, out_dir, hvg_method, n_genes):
     os.makedirs(os.path.join(out_dir, "image"), exist_ok=True)
     os.makedirs(os.path.join(out_dir, "genes"), exist_ok=True)
 
-    # 1. 加载 WSI 和坐标
+    # 1. Load WSI and coordinates
     wsi_array = load_wsi_into_memory(wsi_path)
     rows = load_positions(find_tissue_csv(root_dir))
 
-    # 2. 加载并处理表达谱
+    # 2. Load and process expression profiles
     h5_file = os.path.join(root_dir, "filtered_feature_bc_matrix.h5")
     adata = sc.read_10x_h5(h5_file)
     adata.var_names_make_unique()
     
-    # 过滤线粒体基因
+    # Filter mitochondrial genes
     adata.var["mt"] = adata.var_names.str.upper().str.startswith("MT-")
     adata = adata[:, ~adata.var["mt"]]
     sc.pp.filter_genes(adata, min_cells=10)
 
-    # 【你的核心逻辑】备份 raw counts
+    # [Your core logic] Backup raw counts
     adata.layers["counts"] = adata.X.copy()
 
-    # 先做标准归一化/对数化 (用于 adata.X)
+    # First do standard normalization/log-transform (for adata.X)
     sc.pp.normalize_total(adata, target_sum=1e4)
     sc.pp.log1p(adata)
 
-    # 【用户二选一】HVG 选择
+    # [User choice: one of two options] HVG selection
     if hvg_method == "seurat_v3":
         print(f"--> Using seurat_v3 (from layers['counts']) to find {n_genes} HVGs")
         sc.pp.highly_variable_genes(
@@ -122,27 +122,27 @@ def produce_test_data(root_dir, wsi_path, radius, out_dir, hvg_method, n_genes):
             inplace=True
         )
 
-    # 筛选基因
+    # Subset genes
     adata = adata[:, adata.var['highly_variable']]
     print(f"Final data shape: {adata.shape}")
 
-    # 3. 切片与保存
+    # 3. Patch extraction and saving
     metadata = []
     for idx, (barcode, x, y) in enumerate(rows):
         if barcode not in adata.obs.index: continue
         
-        # 保存图片
+        # Save image
         x0, y0 = int(x - radius), int(y - radius)
         x1, y1 = int(x + radius), int(y + radius)
         patch = wsi_array[y0:y1, x0:x1]
         _normalize_rgb(patch).save(os.path.join(out_dir, "image", f"{barcode}.jpg"))
 
-        # 保存基因 (确保转为 dense)
+        # Save gene vector (ensure conversion to dense)
         g_data = adata[barcode, :].X
         if hasattr(g_data, "toarray"): g_data = g_data.toarray()
         np.save(os.path.join(out_dir, "genes", f"{barcode}.npy"), g_data.astype(np.float32).flatten())
 
-        metadata.append({"spot_id": barcode, "image": f"image/{barcode}.jpg", "gene": f"genes/{barcode}.npy"})
+        metadata.append({"spot_id": barcode, "image_path": f"image/{barcode}.jpg", "gene_vector_path": f"genes/{barcode}.npy"})
 
     pd.DataFrame(metadata).to_csv(os.path.join(out_dir, "metadata.csv"), index=False)
     print("Done!")
@@ -153,7 +153,7 @@ def parse_args():
     p.add_argument("--wsi", default=None)
     p.add_argument("--radius", type=int, default=None)
     p.add_argument("--out", default=None)
-    # 二选一参数
+    # Choice between two options
     p.add_argument("--hvg_method", choices=["default", "seurat_v3"], default="default", help="HVG selection flavor")
     p.add_argument("--n_genes", type=int, default=2000)
     return p.parse_args()

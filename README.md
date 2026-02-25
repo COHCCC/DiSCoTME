@@ -1,9 +1,83 @@
 ## Installation
+1. Create Environment
 ```bash
+conda create -n discotme python=3.9.18
+conda activate discotme
 git clone https://github.com/COHCCC/DiSCoTME.git
 cd DiSCoTME
+```
+
+Install core packages:
+```bash
+# Install PyTorch with CUDA 12.1
+pip install torch==2.4.1 torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cu121
+
+# Install timm
+pip install timm==1.0.22
+
+# Install torchscale from source (required for dilated attention)
+# Option A: If pip install git+... works on your system:
+pip install git+https://github.com/microsoft/torchscale.git@4d1e0e82e5adf86dd424f1463192635b73fc8efc --no-deps
+
+# Option B: If git is not available to pip, install manually:
+git clone https://github.com/microsoft/torchscale.git /tmp/torchscale
+cd /tmp/torchscale
+git checkout 4d1e0e82e5adf86dd424f1463192635b73fc8efc
+pip install . --no-deps
+cd -
+
+# Install remaining dependencies
 pip install -r requirements.txt
 ```
+3. Install Flash-Attention (Required for Training)
+
+Standard Installation (Try This First)
+```bash
+pip install flash-attn --no-build-isolation
+```
+If this works, you're done! If you encounter errors (common on HPC clusters), follow the guide below.
+Flash-Attention Installation for HPC/Cluster Users
+On High-Performance Computing (HPC) environments, a standard pip install flash-attn often fails due to:
+
+* GLIBC Mismatch: Pre-built wheels require GLIBC_2.32+, while clusters often run older versions
+* Compiler Issues: Outdated system GCC (e.g., GCC 4.8 or 7.x) whereas flash-attn needs GCC 9.0+
+* Environment Quirks: git might be a containerized alias (Singularity/Docker), making it invisible to pip's build process
+
+Follow these steps to build from source:
+* Step 1: Download Flash-Attention Source
+On a login node (or any node with internet access), clone the repository:
+```bash
+git clone --recursive https://github.com/Dao-AILab/flash-attention.git
+cd flash-attention
+git checkout v2.8.3
+```
+* Step 2: Set Up a Modern Compiler Environment
+Use Conda to provide a modern C++ compiler, bypassing outdated cluster libraries:
+```bash
+conda install -c conda-forge gxx_linux-64=11.2.0 sysroot_linux-64=2.28 -y
+```
+* Step 3: Load CUDA and Prepare Build Environment
+```bash
+# Load your cluster's CUDA module (adjust version as needed)
+module load cuda/12.3.2
+
+# Create a dummy git script to bypass submodule update checks
+mkdir -p t_bin && printf '#!/bin/sh\nexit 0' > t_bin/git && chmod +x t_bin/git
+
+# Set CUDA path
+export CUDA_HOME=$(dirname $(dirname $(which nvcc)))
+```
+
+* Step 4: Build and Install
+```bash
+CC=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc \
+CXX=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++ \
+PATH=$(pwd)/t_bin:$PATH:$CUDA_HOME/bin \
+FLASH_ATTENTION_FORCE_BUILD=TRUE \
+MAX_JOBS=4 \
+pip install . --no-deps
+```
+Note: Building from source is computationally intensive. It usually takes 15+ minutes. Please ensure your cluster session has enough time remaining (walltime) to avoid being killed mid-build.
 
 ## Data Preprocessing
 
@@ -12,10 +86,10 @@ This script prepares Visium datasets for downstream training by aligning high-re
 ### Usage
 ```bash
 # Option A: Default HVG selection (using log-normalized data)
-python scripts/preprocessing.py --root /path/to/spaceranger_outs/ --n_genes 2000
+python scripts/run_preprocess.py --root /path/to/spaceranger_outs/ --n_genes 2000
 
 # Option B: Seurat_v3 HVG selection (using raw counts)
-python scripts/preprocessing.py --root /path/to/spaceranger_outs/ --hvg_method seurat_v3 --n_genes 3000
+python scripts/run_preprocess.py --root /path/to/spaceranger_outs/ --hvg_method seurat_v3 --n_genes 3000
 ```
 
 ### Arguments

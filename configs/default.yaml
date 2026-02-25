@@ -2,7 +2,7 @@
 data:
   root: "/path/to/your/data"
   metadata_csv: "metadata.csv"
-  tissue_positions_csv: "tissue_positions.csv"
+  tissue_positions_csv: "spatial/tissue_positions.csv"
   num_local: 15
   num_global: 0
   local_distance: 400
