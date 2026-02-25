@@ -7,19 +7,19 @@ Jiarong Song1, Bohan Zhang1, Rayyan Aburajab1, Jing Qian2, Rania Bassiouni1, Joh
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Model Overview
-**DiSCoTME** (Dilated Spatial Context for the Tumor Microenvironment) is a dual-encoder deep learning framework that jointly learns from H&E histology images and gene expression profiles in spatial transcriptomics data. By combining multi-scale dilated attention with contrastive learning, DiSCoTME produces unified, spatially informed embeddings that capture tissue organization across multiple spatial scales.
+**DiSCoTME** (Dilated Spatial Context for the Tumor Microenvironment) is a dual-encoder deep learning framework that jointly learns from H&E histology images and gene expression profiles in spatial transcriptomics data. By combining multi-scale dilated neighbor attention with contrastive learning, DiSCoTME produces unified, spatially informed embeddings that capture tissue organization across multiple spatial scales.
 
 ## Key Features
 
-- **Multi-modal integration**: Aligns histology images with gene expression in a shared embedding space
-- **Multi-scale spatial context**: Dilated attention captures from local coposition to micro-anatomical structures to global context
-- **Adaptive gating**: Automatically balances local identity vs. neighborhood context per spot
-- **Unsupervised discovery**: Learned embeddings enable clustering of microenvironmental motifs without manual annotation
+- **Multi-modal integration**: Contrastive learning aligns spatially-aware image and gene embeddings into a shared space
+- **Multi-scale spatial context**: Multi-head neighbor attention with varying dilation rates resolve from local coposition to micro-anatomical structures to global context
+- **Adaptive gating**: Per-spot coefficients balance local identity against neighborhood context where high values preserve sharp local gradients in distinctive regions (fidelity mode), low values draw on neighborhood consistency when local evidence is sparse (denoising mode)
+- **Unsupervised discovery**: Joint embeddings encode cross-modal correspondence and neighborhood context, enabling unsupervised clustering to reveal hidden microenvironmental motifs defined by the interplay of all three dimensions without manual annotation
 
 ## Input / Output
 
-- **Input**: 10x Visium spatial transcriptomics data with matched H&E whole slide image and spots' spatial locations
-- **Output**: Joint image-gene embeddings for downstream analysis (clustering, visualization, hidden microenvironmental motifs discovery)
+- **Input**: 10x Visium spatial transcriptomics (gene expression + H&E image + spot coordinates)
+- **Output**: Spatially-aware joint embeddings for unsupervised motif discovery—revealing tissue structures
 
 <p align="center">
   <img src="assets/overview.png" width="90%"> <br>
