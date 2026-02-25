@@ -46,26 +46,31 @@ git clone https://github.com/COHCCC/DiSCoTME.git
 cd DiSCoTME
 ```
 
-2. Install core packages and dependencies:
+2. Install core packages:
 ```bash
 # Install PyTorch with CUDA 12.1
 pip install torch==2.4.1 torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cu121
 
 # Install timm
 pip install timm==1.0.22
-
-# Install torchscale from source (required for dilated attention)
-# Option A: If pip install git+... works on your system:
+```
+3. Install torchscale
+**Option A: Standard installation** (works on most systems)
+```bash
 pip install git+https://github.com/microsoft/torchscale.git@4d1e0e82e5adf86dd424f1463192635b73fc8efc --no-deps
+```
 
-# Option B: If git is not available to pip, install manually:
+**Option B: Manual installation** (for HPC environments where git runs inside Singularity/container)
+```bash
 git clone https://github.com/microsoft/torchscale.git /tmp/torchscale
 cd /tmp/torchscale
 git checkout 4d1e0e82e5adf86dd424f1463192635b73fc8efc
 pip install . --no-deps
 cd -
+```
 
-# Install remaining dependencies
+4. Install remaining dependencies
+```bash
 pip install -r requirements.txt
 ```
 
