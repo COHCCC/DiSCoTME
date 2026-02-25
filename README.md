@@ -221,8 +221,8 @@ torchrun --nproc_per_node=4 scripts/run_train.py \
 
 | Name | Model | Speed | Notes |
 |------|-------|-------|-------|
-| `vit_dino_v1` | ViT-S/16 DINO | ⚡ Fast | **Default.** Good for most cases |
-| `gigapath_frozen_v1` | GigaPath | 🐢 Slow | Pathology-pretrained, requires HF token |
+| `vit_dino_v1` | ViT-S/16 DINO | Fast | **Default.** Good for most cases |
+| `gigapath_frozen_v1` | GigaPath | Slow | Pathology-pretrained, requires HF token. Options for user who wants to dig into more morphological features. Note: due to heavy-weight of the package, the image encoder model backbone is freezed |
 
 
 ### Gene Encoders (`--gene-encoder-type`)
