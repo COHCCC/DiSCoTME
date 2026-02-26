@@ -57,9 +57,9 @@ wget https://huggingface.co/datasets/nina-song/SPA1_D/resolve/main/Craig_SPA1_D.
 ## Required Input Data Structure
 
 **Note:** If using your own data, ensure it follows the same structure as the demo data. Specifically:
-- `tissue_positions.csv` should have **no header row** and no extra prefix characters
+- All files should have **no header row** and no extra prefix characters
 - `tissue_positions.csv` and `scalefactors_json.json` must be placed inside the `spatial/` folder
-- File names should match exactly as shown above
+- File names should match exactly as shown above (except .tif for whole slide H&E image)
 
 ```
 demo_data/
@@ -192,7 +192,7 @@ sbatch scripts/run_my_cluster.sh
 cp configs/default.yaml configs/my_config.yaml
 ```
 
-2. Edit `my_config.yaml` to specify your data path and adjust training parameters as needed:
+2. Open and Edit `my_config.yaml` to specify your data path and adjust training parameters as needed:
    - Set `data.root` to point to your data folder
    - Optional: Modify hyperparameters (e.g., learning rate, batch size) based on your dataset and hardware
 
@@ -216,8 +216,8 @@ Any config value can be overridden via command line:
 ```bash
 torchrun --nproc_per_node=4 scripts/run_train.py \
     --config configs/my_config.yaml \
-    --batch-size 16 \
-    --num-epochs 10 \
+    --batch-size 12 \
+    --num-epochs 5 \
     --temperature 0.07
 ```
 
@@ -246,12 +246,12 @@ Different components use different learning rates for optimal training:
 | Gene encoder | `--lr-gene-encoder` | 3e-4 | Learns from scratch, can be faster |
 | Gene projection | `--lr-gene-proj` | 1e-4 | Final projection |
 
-Example - adjust learning rates:
+Override Example - adjust learning rates:
 ```bash
 torchrun --nproc_per_node=4 scripts/run_train.py \
     --config configs/default.yaml \
-    --lr-img-backbone 5e-6 \
-    --lr-gene-encoder 1e-4 \
+    --lr-img-backbone 1e-5 \
+    --lr-gene-encoder 3e-4 \
     --temperature 0.1
 ```
 > **Note:** When specifying learning rates in YAML config files, use decimal notation (e.g., `0.00001`) instead of scientific notation (e.g., `1e-5`), as some YAML parsers may incorrectly interpret scientific notation as a string.
@@ -334,7 +334,7 @@ context:
 
 training:
   batch_size: 12
-  num_epochs: 50
+  num_epochs: 5
   temperature: 0.07
   weight_decay: 1e-5
   seed: 42
@@ -369,33 +369,7 @@ context:
     drop_path_rate: 0.1
 ```
 
-
-## Internal testing: SLURM Cluster
-
-For City of Hope HPC users and internal test, see `scripts/run_ddp.sh` as a template.
-
-Key modifications needed:
-- `--partition`: Your cluster's GPU partition
-- `--gres`: GPU type (e.g., `gpu:v100-dev:4`)
-- Conda environment path
-- Data paths
-```bash
-# Copy and modify for your cluster
-cp scripts/run_ddp.sh scripts/run_my_cluster.sh
-```
-**important.** replace dataset name
-```
-DATASET_NAME="SPA_1D"
-DATA_ROOT="/path/to/dataset/${DATASET_NAME}"
-```
-# Edit the script, then submit
-```
-sbatch scripts/run_my_cluster.sh
-```
-
----
-
-## Outputs
+## Outputs After Training
 
 Training outputs are saved to `checkpoints/<run_name>/`:
 ```
