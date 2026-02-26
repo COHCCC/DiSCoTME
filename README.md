@@ -57,9 +57,10 @@ wget https://huggingface.co/datasets/nina-song/SPA1_D/resolve/main/Craig_SPA1_D.
 ## Required Input Data Structure
 
 **Note:** If using your own data, ensure it follows the same structure as the demo data. Specifically:
-- All files should have **no header row** and no extra prefix characters
+- All files should have no extra prefix characters
 - `tissue_positions.csv` and `scalefactors_json.json` must be placed inside the `spatial/` folder
 - File names should match exactly as shown above (except .tif for whole slide H&E image)
+- *If you encounter file format errors during preprocessing, check all files in this folder to ensure consistent formatting for downstream processing and training*
 
 ```
 demo_data/
@@ -101,7 +102,9 @@ git clone https://github.com/microsoft/torchscale.git /tmp/torchscale
 cd /tmp/torchscale
 git checkout 4d1e0e82e5adf86dd424f1463192635b73fc8efc
 pip install . --no-deps
-cd -
+
+# Back to the previous DiSCoTME folder
+cd - 
 ```
 
 4. Install remaining dependencies
