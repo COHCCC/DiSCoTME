@@ -32,7 +32,7 @@ Jiarong Song, Bohan Zhang, Rayyan Aburajab, Jing Qian, Rania Bassiouni, John J.Y
 
 # Download Test Data
 
-Demo Data: This is a human glioblastoma (GBM) spatial transcriptomics dataset from GEO (GSE242352), generated using the 10X Genomics Visium CytAssist platform on FFPE tissue sections. The data includes gene expression matrices (filtered/raw H5 files), spatial coordinates, tissue images, and visualization files, enabling exploration of spatial heterogeneity in the tumor microenvironment (TME) in GBM.
+**Demo Data**: This is a human glioblastoma (GBM) spatial transcriptomics dataset from GEO ([GSM8513873](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM8513873), part of series [GSE242352](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE242352)), generated using the 10X Genomics Visium CytAssist platform on FFPE tissue sections. The data includes gene expression matrices (filtered/raw H5 files), spatial coordinates, tissue images, and visualization files, enabling exploration of spatial heterogeneity in the tumor microenvironment.
 
 ```bash
 # Transcriptome data from GEO
