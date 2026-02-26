@@ -24,7 +24,7 @@ Jiarong Song, Bohan Zhang, Rayyan Aburajab, Jing Qian, Rania Bassiouni, John J.Y
 | **Output** | Joint histology-gene embeddings that capture cross-modal correspondence and multi-scale spatial context, enabling unsupervised discovery of microenvironmental motifs invisible to either modality alone
 
 <p align="center">
-  <img src="assets/overview.png" width="90%"> <br>
+  <img src="assets/github.png" width="95%"> <br>
 
   *Overview of DiSCoTME model architecture*
 
