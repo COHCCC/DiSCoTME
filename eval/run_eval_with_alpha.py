@@ -54,9 +54,9 @@ def parse_args():
     parser.add_argument("--model-arch", type=str, default="standard_discotme", 
                     choices=["standard_discotme", "factorized_discotme"],
                     help="Choose model architecture")
-    parser.add_argument("--image-encoder-type", type=str, default="multiscale_image_encoder")
-    parser.add_argument("--image-backbone", type=str, default="gigapath_with_confidence")
-    parser.add_argument("--gene-encoder-type", type=str, default="gene_mlp_residual")
+    parser.add_argument("--image-encoder-type", type=str, default="gated_image_encoder")
+    parser.add_argument("--image-backbone", type=str, default="vit_dino_v1")
+    parser.add_argument("--gene-encoder-type", type=str, default="gated_gene_encoder")
     parser.add_argument("--config-path", type=str, default=None)
     parser.add_argument("--context-config", type=str, default="LongNet_for_spatial")
     parser.add_argument("--embed-dim", type=int, default=256)

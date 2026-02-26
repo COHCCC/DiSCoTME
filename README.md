@@ -7,6 +7,7 @@ Jiarong Song, Bohan Zhang, Rayyan Aburajab, Jing Qian, Rania Bassiouni, John J.Y
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Model Overview
+
 **DiSCoTME** (Dilated Spatial Context for the Tumor Microenvironment) is a dual-encoder deep learning framework that jointly learns from H&E histology images and gene expression profiles in spatial transcriptomics data. By combining multi-scale dilated neighbor attention with contrastive learning, DiSCoTME produces unified, spatially informed embeddings that capture tissue organization across multiple spatial scales.
 
 ## Key Features
@@ -30,53 +31,14 @@ Jiarong Song, Bohan Zhang, Rayyan Aburajab, Jing Qian, Rania Bassiouni, John J.Y
 
 </p>
 
-# Download Test Data
-
-**Demo Data**: This is a human glioblastoma (GBM) spatial transcriptomics dataset from GEO ([GSM8513873](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM8513873), part of series [GSE242352](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE242352)), generated using the 10X Genomics Visium CytAssist platform on FFPE tissue sections. The data includes gene expression matrices (filtered/raw H5 files), spatial coordinates, tissue images, and visualization files, enabling exploration of spatial heterogeneity in the tumor microenvironment.
-
-```bash
-# Transcriptome data from GEO
-mkdir -p demo_data
-wget -r -np -nd -P demo_data ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM8513nnn/GSM8513873/suppl/
-
-cd demo_data
-gunzip *.gz
-
-# Remove unnecessary headings
-for f in GSM8513873_SPA1_D_*; do
-    mv "$f" "${f#GSM8513873_SPA1_D_}"
-done
-
-mkdir -p spatial
-mv tissue_positions.csv spatial/
-mv scalefactors_json.json spatial/
-
-# H&E image from Hugging Face
-wget https://huggingface.co/datasets/nina-song/SPA1_D/resolve/main/Craig_SPA1_D.tif
-```
-## Required Input Data Structure
-
-**Note:** If using your own data, ensure it follows the same structure as the demo data. Specifically:
-- All files should have no extra prefix characters
-- `tissue_positions.csv` and `scalefactors_json.json` must be placed inside the `spatial/` folder
-- File names should match exactly as shown above (except .tif for whole slide H&E image)
-- *If you encounter file format errors during preprocessing, check all files in this folder to ensure consistent formatting for downstream processing and training*
-
-```
-demo_data/
-├── filtered_feature_bc_matrix.h5
-├── WSI.tif
-├── spatial/
-│   ├── tissue_positions.csv
-│   └── scalefactors_json.json
-└── ...
-```
 
 # Installation
 1. Create Environment
 ```bash
 conda create -n discotme python=3.9.18
 conda activate discotme
+
+# conda install git 
 git clone https://github.com/COHCCC/DiSCoTME.git
 cd DiSCoTME
 ```
@@ -114,6 +76,49 @@ pip install -r requirements.txt
 
 > **Note**: You may see a warning/error message about `torchscale 0.2.0 requires timm==0.6.13`. This can be safely ignored as we install torchscale with `--no-deps` to use our required timm version.
 
+# Download Test Data
+
+**Demo Data**: This is a human glioblastoma (GBM) spatial transcriptomics dataset from GEO ([GSM8513873](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM8513873), part of series [GSE242352](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE242352)), generated using the 10X Genomics Visium CytAssist platform on FFPE tissue sections. The data includes gene expression matrices (filtered/raw H5 files), spatial coordinates, tissue images, and visualization files, enabling exploration of spatial heterogeneity in the tumor microenvironment.
+
+```bash
+# Transcriptome data from GEO
+cd DiSCoTME
+mkdir -p demo_data
+wget -r -np -nd -P demo_data ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM8513nnn/GSM8513873/suppl/
+
+cd demo_data
+gunzip *.gz
+
+# Remove unnecessary headings
+for f in GSM8513873_SPA1_D_*; do
+    mv "$f" "${f#GSM8513873_SPA1_D_}"
+done
+
+mkdir -p spatial
+mv tissue_positions.csv spatial/
+mv scalefactors_json.json spatial/
+
+# H&E image from Hugging Face
+wget https://huggingface.co/datasets/nina-song/SPA1_D/resolve/main/Craig_SPA1_D.tif
+```
+## Required Input Data Structure
+
+**Note:** If using your own data, ensure it follows the same structure as the demo data. Specifically:
+- All files should have no extra prefix characters
+- `tissue_positions.csv` and `scalefactors_json.json` must be placed inside the `spatial/` folder
+- File names should match exactly as shown above (except .tif for whole slide H&E image)
+- *If you encounter file format errors during preprocessing, check all files in this folder to ensure consistent formatting for downstream processing and training*
+
+```
+demo_data/
+├── filtered_feature_bc_matrix.h5
+├── WSI.tif
+├── spatial/
+│   ├── tissue_positions.csv
+│   └── scalefactors_json.json
+└── ...
+```
+
 ## Data Preprocessing
 
 This script prepares Visium datasets for downstream training by aligning high-resolution WSI images with spatial transcriptomics data. It crops image patches for each spot and generates corresponding gene expression vectors.
@@ -121,6 +126,7 @@ This script prepares Visium datasets for downstream training by aligning high-re
 ### Usage
 ```bash
 # Option A: Default HVG selection (using log-normalized data)
+# eg: python scripts/run_preprocess.py --root /path/to/spaceranger_outs/ --n_genes 2000
 python scripts/run_preprocess.py --root /path/to/spaceranger_outs/ --n_genes 2000
 
 # Option B: Seurat_v3 HVG selection (using raw counts)
@@ -151,51 +157,8 @@ output_dir/
     ├── BARCODE2.npy
 ```
 
-# Internal testing: SLURM Cluster (will be REMOVED BEFORE submission)
-
-For HPC users running on SLURM-managed clusters:
-
-1. **Copy and edit the template:**
-
-```bash
-cp scripts/run_train_slurm.sh scripts/run_my_cluster.sh
-```
-
-2. **Modify the USER CONFIGURATION section at the top:**
-
-```bash
-# =============================================================================
-# USER CONFIGURATION - MODIFY THESE
-# =============================================================================
-
-PROJECT_ROOT="/path/to/DiSCoTME"      # Full path to your DiSCoTME directory
-CONDA_ENV="discotme"                   # Your conda environment name
-DATA_ROOT="/path/to/your/data"         # Full path to preprocessed data
-META_CSV="metadata.csv"                # Metadata filename
-POS_CSV="tissue_positions.csv" # Tissue positions path
-```
-
-3. **Adjust SLURM settings as needed:**
-
-```bash
-#SBATCH --partition=gpu-v100-dev         # Your cluster's GPU partition
-#SBATCH --gres=gpu:4             # Number of GPUs (e.g., gpu:v100:4)
-#SBATCH --mail-user=your@email   # Your email for notifications
-```
-
-4. **Submit the job:**
-
-```bash
-sbatch scripts/run_my_cluster.sh
-```
-
-5. **Model evaluation:**
-See **Model Evaluation & Interpretation** section at the end
-
-> **Note**: Training arguments (batch size, epochs, learning rate, etc.) can be modified in the `ARGS` array within the script.
-
-
 # Training
+
 1. Create your own configuration file by copying the default template:
 
 ```bash
@@ -210,12 +173,7 @@ cp configs/default.yaml configs/my_config.yaml
 
 > **Note:** When specifying learning rates in YAML config files, use decimal notation (e.g., `0.00001`) instead of scientific notation (e.g., `1e-5`), as some YAML parsers may incorrectly interpret scientific notation as a string.
 
-### Single-GPU
-```bash
-python scripts/run_train.py --config configs/my_config.yaml
-```
 
-### Multi-GPU (Single Node)
 ```bash
 torchrun --nproc_per_node=4 scripts/run_train.py --config configs/my_config.yaml
 ```
@@ -231,9 +189,47 @@ torchrun --nproc_per_node=4 scripts/run_train.py \
     --temperature 0.07
 ```
 
+## Outputs After Training
+
+Training outputs are saved to `checkpoints/<run_name>/`:
+```
+checkpoints/standard_discotme_<run_name>/
+├── config.yaml           # Full config (for reproducibility)
+├── best_model.pth        # Best model weights
+├── final_model.pth       # Final model weights
+├── checkpoint_epoch5.pth # Periodic checkpoints
+└── loss_history.json     # Training loss curve
+```
+
+# Model Evaluation & Interpretation
+After training, you can use the following script to perform inference, generate spatial clusters, and extract the Alpha weights
+
+1. Run Evaluation
+This script will extract multi-modal embeddings from your Visium data and perform K-Means clustering across multiple scales.
+```bash
+python eval/run_eval_with_alpha.py \
+    --data-root /path/to/your/visium_data/ \
+    --model-path /path/to/checkpoints/best_model.pth \
+    --output-dir ./eval_results/ \
+    --device cuda \
+    --batch-size 64 \
+    --num-workers 4
+```
+
+| Name | Description |
+|------|-------------|
+| `data-root` | Path to the directory containing tissue_positions.csv and image patches |
+| `model-path` | **Important.** Must point to the specific .pth file, not just the folder. |
+| `output-dir` | Where clustering results and alpha weights will be saved |
+| `device` | Set to cuda to leverage GPU |
+
+2. Expected Outputs
+* k[4-10]/: Directories containing .csv cluster assignments for post-training embeddings (Image, Gene, and Fused (more details about fusing can be found in online method section)).
+* alpha_weights_e5.csv: Learned alpha weights per spot. A per-spot gating coefficient preserves sharp local gradients for distinct motifs (fidelity mode) while smoothing noise in homogeneous regions (denoising mode).
+
 ---
 
-## Key Parameters
+# Key Parameters
 
 ### Most Commonly Tuned
 
@@ -267,7 +263,7 @@ torchrun --nproc_per_node=4 scripts/run_train.py \
 > **Note:** When specifying learning rates in YAML config files, use decimal notation (e.g., `0.00001`) instead of scientific notation (e.g., `1e-5`), as some YAML parsers may incorrectly interpret scientific notation as a string.
 ---
 
-## Available Modules
+# Available Modules
 
 ### Model Architectures (`--model-arch`)
 
@@ -379,47 +375,9 @@ context:
     drop_path_rate: 0.1
 ```
 
-## Outputs After Training
-
-Training outputs are saved to `checkpoints/<run_name>/`:
-```
-checkpoints/standard_discotme_<run_name>/
-├── config.yaml           # Full config (for reproducibility)
-├── best_model.pth        # Best model weights
-├── final_model.pth       # Final model weights
-├── checkpoint_epoch5.pth # Periodic checkpoints
-└── loss_history.json     # Training loss curve
-```
-
-# Model Evaluation & Interpretation
-After training, you can use the following script to perform inference, generate spatial clusters, and extract the Alpha weights
-
-1. Run Evaluation
-This script will extract multi-modal embeddings from your Visium data and perform K-Means clustering across multiple scales.
-```bash
-python eval/run_eval_with_alpha.py \
-    --data-root /path/to/your/visium_data/ \
-    --model-path /path/to/checkpoints/best_model.pth \
-    --output-dir ./eval_results/ \
-    --device cuda \
-    --batch-size 64 \
-    --num-workers 4
-```
-
-| Name | Description |
-|------|-------------|
-| `data-root` | Path to the directory containing tissue_positions.csv and image patches |
-| `model-path` | **important.** Must point to the specific .pth file, not just the folder. |
-| `output-dir` | Where clustering results and alpha weights will be saved |
-| `device` | Set to cuda to leverage GPU |
-
-2. Expected Outputs
-* k[4-10]/: Directories containing .csv cluster assignments for post-training embeddings (Image, Gene, and Fused (more details about fusing can be found in online method section)).
-* alpha_weights_e5.csv: Learned alpha weights per spot. A per-spot gating coefficient preserves sharp local gradients for distinct motifs (fidelity mode) while smoothing noise in homogeneous regions (denoising mode).
-
 # Citation
 
 If you find DiSCoTME useful in your research, please cite:
 ```
-Song, N., & Craig, D. (2026). Using multi-scale spatial integration of histology and transcriptomics to discover hidden tumor microenvironment motifs
+Song, J., & Craig, D. (2026). Using multi-scale spatial integration of histology and transcriptomics to discover hidden tumor microenvironment motifs.
 ```
