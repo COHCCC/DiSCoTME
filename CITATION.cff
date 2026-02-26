@@ -1,0 +1,12 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+title: "DiSCoTME: Using multi-scale spatial integration of histology and transcriptomics to discover hidden tumor microenvironment motifs"
+type: software
+authors:
+  - family-names: Song
+    given-names: Jiarong
+    affiliation: "Department of Integrative Translational Science, Beckman Research Institute, City of Hope, Duarte, CA, USA."
+repository-code: "https://github.com/COHCCC/DiSCoTME"
+license: MIT
+version: 1.0.0
+date-released: "2026-02-25"
