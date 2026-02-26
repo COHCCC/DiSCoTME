@@ -6,7 +6,7 @@ Jiarong Song, Bohan Zhang, Rayyan Aburajab, Jing Qian, Rania Bassiouni, John J.Y
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Model Overview
+# Model Overview
 **DiSCoTME** (Dilated Spatial Context for the Tumor Microenvironment) is a dual-encoder deep learning framework that jointly learns from H&E histology images and gene expression profiles in spatial transcriptomics data. By combining multi-scale dilated neighbor attention with contrastive learning, DiSCoTME produces unified, spatially informed embeddings that capture tissue organization across multiple spatial scales.
 
 ## Key Features
@@ -30,7 +30,10 @@ Jiarong Song, Bohan Zhang, Rayyan Aburajab, Jing Qian, Rania Bassiouni, John J.Y
 
 </p>
 
-## Download Test Data
+# Download Test Data
+
+Demo Data: This is a human glioblastoma (GBM) spatial transcriptomics dataset from GEO (GSE242352), generated using the 10X Genomics Visium CytAssist platform on FFPE tissue sections. The data includes gene expression matrices (filtered/raw H5 files), spatial coordinates, tissue images, and visualization files, enabling exploration of spatial heterogeneity in the tumor microenvironment (TME) in GBM.
+
 ```bash
 # Transcriptome data from GEO
 mkdir -p demo_data
@@ -52,6 +55,12 @@ mv scalefactors_json.json spatial/
 wget https://huggingface.co/datasets/nina-song/SPA1_D/resolve/main/Craig_SPA1_D.tif
 ```
 ## Required Input Data Structure
+
+**Note:** If using your own data, ensure it follows the same structure as the demo data. Specifically:
+- `tissue_positions.csv` should have **no header row** and no extra prefix characters
+- `tissue_positions.csv` and `scalefactors_json.json` must be placed inside the `spatial/` folder
+- File names should match exactly as shown above
+
 ```
 demo_data/
 ├── filtered_feature_bc_matrix.h5
@@ -62,7 +71,7 @@ demo_data/
 └── ...
 ```
 
-## Installation
+# Installation
 1. Create Environment
 ```bash
 conda create -n discotme python=3.9.18
@@ -100,7 +109,7 @@ cd -
 pip install -r requirements.txt
 ```
 
-> **Note**: You may see a warning about `torchscale 0.2.0 requires timm==0.6.13`. This can be safely ignored as we install torchscale with `--no-deps` to use our required timm version.
+> **Note**: You may see a warning/error message about `torchscale 0.2.0 requires timm==0.6.13`. This can be safely ignored as we install torchscale with `--no-deps` to use our required timm version.
 
 ## Data Preprocessing
 
@@ -129,7 +138,7 @@ python scripts/run_preprocess.py --root /path/to/spaceranger_outs/ --hvg_method 
 ### Output Structure
 ```
 output_dir/
-├── metadata.csv        # spot_id, image_path, gene_vector_path
+├── metadata.csv        # column name: spot_id, image_path, gene_vector_path
 ├── image/
 │   ├── BARCODE1.jpg
 │   ├── BARCODE2.jpg
@@ -139,7 +148,7 @@ output_dir/
     ├── BARCODE2.npy
 ```
 
-## Internal testing: SLURM Cluster (will be REMOVED BEFORE submission)
+# Internal testing: SLURM Cluster (will be REMOVED BEFORE submission)
 
 For HPC users running on SLURM-managed clusters:
 
@@ -176,12 +185,20 @@ sbatch scripts/run_my_cluster.sh
 > **Note**: Training arguments (batch size, epochs, learning rate, etc.) can be modified in the `ARGS` array within the script.
 
 
-## Training: Quick Start
-1. Copy config
-2. Edit my_config.yaml: set data.root to your data folder
+# Training
+1. Create your own configuration file by copying the default template:
+
 ```bash
 cp configs/default.yaml configs/my_config.yaml
 ```
+
+2. Edit `my_config.yaml` to specify your data path and adjust training parameters as needed:
+   - Set `data.root` to point to your data folder
+   - Optional: Modify hyperparameters (e.g., learning rate, batch size) based on your dataset and hardware
+
+**Note:** Before running the following training commend lines, make sure to request GPU resources according to your HPC cluster's job scheduler (e.g., SLURM, PBS, LSF) if applicable.
+
+> **Note:** When specifying learning rates in YAML config files, use decimal notation (e.g., `0.00001`) instead of scientific notation (e.g., `1e-5`), as some YAML parsers may incorrectly interpret scientific notation as a string.
 
 ### Single-GPU
 ```bash
@@ -198,10 +215,10 @@ torchrun --nproc_per_node=4 scripts/run_train.py --config configs/my_config.yaml
 Any config value can be overridden via command line:
 ```bash
 torchrun --nproc_per_node=4 scripts/run_train.py \
-    --config configs/default.yaml \
+    --config configs/my_config.yaml \
     --batch-size 16 \
-    --num-epochs 100 \
-    --temperature 0.05
+    --num-epochs 10 \
+    --temperature 0.07
 ```
 
 ---
@@ -214,7 +231,7 @@ torchrun --nproc_per_node=4 scripts/run_train.py \
 |-----------|----------|---------|-------------|
 | Temperature | `--temperature` | 0.07 | InfoNCE temperature. Lower = sharper distribution |
 | Batch size | `--batch-size` | 12 | Per-GPU batch size |
-| Epochs | `--num-epochs` | 50 | Training epochs |
+| Epochs | `--num-epochs` | 5 | Training epochs |
 | Local neighbors | `--num-local` | 15 | Spatial neighbors per spot |
 
 ### Learning Rates
@@ -237,7 +254,7 @@ torchrun --nproc_per_node=4 scripts/run_train.py \
     --lr-gene-encoder 1e-4 \
     --temperature 0.1
 ```
-
+> **Note:** When specifying learning rates in YAML config files, use decimal notation (e.g., `0.00001`) instead of scientific notation (e.g., `1e-5`), as some YAML parsers may incorrectly interpret scientific notation as a string.
 ---
 
 ## Available Modules
@@ -391,7 +408,7 @@ checkpoints/standard_discotme_20250123_143052/
 └── loss_history.json     # Training loss curve
 ```
 
-## Model Evaluation & Interpretation
+# Model Evaluation & Interpretation
 After training, you can use the following script to perform inference, generate spatial clusters, and extract the Alpha weights
 
 1. Run Evaluation
@@ -417,7 +434,7 @@ python run_eval_with_alpha.py \
 * k[4-10]/: Directories containing .csv cluster assignments for post-training embeddings (Image, Gene, and Fused (more details about fusing can be found in online method section)).
 * alpha_weights_e5.csv: Learned alpha weights per spot. A per-spot gating coefficient preserves sharp local gradients for distinct motifs (fidelity mode) while smoothing noise in homogeneous regions (denoising mode).
 
-## Citation
+# Citation
 
 If you find DiSCoTME useful in your research, please cite:
 ```
