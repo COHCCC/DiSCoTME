@@ -383,12 +383,11 @@ context:
 
 Training outputs are saved to `checkpoints/<run_name>/`:
 ```
-checkpoints/standard_discotme_20250123_143052/
+checkpoints/standard_discotme_<run_name>/
 ├── config.yaml           # Full config (for reproducibility)
 ├── best_model.pth        # Best model weights
 ├── final_model.pth       # Final model weights
 ├── checkpoint_epoch5.pth # Periodic checkpoints
-├── checkpoint_epoch10.pth
 └── loss_history.json     # Training loss curve
 ```
 
