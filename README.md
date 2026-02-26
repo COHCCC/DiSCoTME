@@ -156,11 +156,13 @@ output_dir/
 For HPC users running on SLURM-managed clusters:
 
 1. **Copy and edit the template:**
+
 ```bash
 cp scripts/run_train_slurm.sh scripts/run_my_cluster.sh
 ```
 
 2. **Modify the USER CONFIGURATION section at the top:**
+
 ```bash
 # =============================================================================
 # USER CONFIGURATION - MODIFY THESE
@@ -174,6 +176,7 @@ POS_CSV="tissue_positions.csv" # Tissue positions path
 ```
 
 3. **Adjust SLURM settings as needed:**
+
 ```bash
 #SBATCH --partition=gpu-v100-dev         # Your cluster's GPU partition
 #SBATCH --gres=gpu:4             # Number of GPUs (e.g., gpu:v100:4)
@@ -181,9 +184,13 @@ POS_CSV="tissue_positions.csv" # Tissue positions path
 ```
 
 4. **Submit the job:**
+
 ```bash
 sbatch scripts/run_my_cluster.sh
 ```
+
+5. **Model evaluation:**
+See **Model Evaluation & Interpretation** section at the end
 
 > **Note**: Training arguments (batch size, epochs, learning rate, etc.) can be modified in the `ARGS` array within the script.
 
@@ -391,7 +398,7 @@ After training, you can use the following script to perform inference, generate 
 1. Run Evaluation
 This script will extract multi-modal embeddings from your Visium data and perform K-Means clustering across multiple scales.
 ```bash
-python run_eval_with_alpha.py \
+python eval/run_eval_with_alpha.py \
     --data-root /path/to/your/visium_data/ \
     --model-path /path/to/checkpoints/best_model.pth \
     --output-dir ./eval_results/ \
