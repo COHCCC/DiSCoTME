@@ -236,10 +236,10 @@ Each 16 µm bin is grouped into a `GxG` **super-bin** (e.g. 4×4 = 64 µm); the
 `GxG` sub-bins are aggregated with a gated **attention-MIL** head instead of
 being averaged, which preserves sub-bin spatial structure.
 
-**Design:** all HD code lives under `src/hd/`, `scripts/hd/`, `eval/hd/`,
-`configs/hd/`, and `preprocessing/hd/`, and reuses the regular-Visium core by
-**registration + subclassing** — no shared file is modified, so the standard
-Visium pipeline is byte-for-byte unchanged.
+**Design:** all HD code lives under `src/hd/`, `scripts/hd/`, `eval/hd/`, and
+`configs/hd/`, and reuses the regular-Visium core by **registration +
+subclassing** — no shared file is modified, so the standard Visium pipeline is
+byte-for-byte unchanged.
 
 ### 1. Prepare data — download → extract → preprocess
 
@@ -271,7 +271,7 @@ $SAMPLE/Visium_HD_Human_Colon_Cancer_tissue_image.btf   # NOTE: the WSI sits at 
 ```bash
 export HDF5_USE_FILE_LOCKING=FALSE          # needed for scanpy to open .h5 on Isilon/Lustre
 SQ="$SAMPLE/binned_outputs/square_016um"
-python preprocessing/hd/preprocess_visiumhd_subbin.py \
+python scripts/hd/preprocess_visiumhd_subbin.py \
     --root "$SQ" \
     --wsi  "$SAMPLE/Visium_HD_Human_Colon_Cancer_tissue_image.btf" \  # pass explicitly: autodetect misses a WSI at the sample root
     --out  "$SQ/preprocess_subbin_full_g4" \

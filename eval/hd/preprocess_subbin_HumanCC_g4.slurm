@@ -31,7 +31,7 @@ SQ="${SAMPLE}/binned_outputs/square_016um"
 WSI="${SAMPLE}/Visium_HD_Human_Colon_Cancer_tissue_image.btf"
 echo "Host: $(hostname)  grid=4x4 (64um)  FULL tissue  Start: $(date)"
 
-"${PYBIN}" "${PROJECT_ROOT}/preprocessing/hd/preprocess_visiumhd_subbin.py" \
+"${PYBIN}" "${PROJECT_ROOT}/scripts/hd/preprocess_visiumhd_subbin.py" \
   --root "${SQ}" \
   --wsi  "${WSI}" \
   --out  "${SQ}/preprocess_subbin_full_g4" \
