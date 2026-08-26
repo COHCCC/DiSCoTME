@@ -3,7 +3,7 @@
 
 #SBATCH --job-name=discotme_gated
 #SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --mail-user=jiasong@coh.org
+#SBATCH --mail-user=your_email@example.com
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=1
 #SBATCH --partition=gpu-v100-dev
@@ -18,7 +18,7 @@ mkdir -p slurm_logs
 
 echo "=== [Step 1] Environment Setup ==="
 
-MY_HARDCODED_PATH="/coh_labs/dits/nsong/manuscript/DiSCoTME_2026"
+MY_HARDCODED_PATH="/path/to/DiSCoTME"
 
 if [ -n "${DISCOTME_HOME}" ]; then
     echo "[Info] Using provided env var DISCOTME_HOME"
@@ -75,8 +75,10 @@ fi
 
 # === Environment Variables & Paths ===
 export LD_LIBRARY_PATH="/usr/lib64:/usr/lib64/nvidia:${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${CONDA_PREFIX}/lib"
-export HF_HOME=/coh_labs/dits/nsong/.cache/huggingface
-export HUGGING_FACE_HUB_TOKEN="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"
+export HF_HOME="${HF_HOME:-$HOME/.cache/huggingface}"
+# Optional: only needed for GATED backbones (e.g. GigaPath). Public timm/DINOv2
+# weights download anonymously -- leave empty unless you need a gated model.
+export HUGGING_FACE_HUB_TOKEN="${HUGGING_FACE_HUB_TOKEN:-}"
 
 # === Distributed Network Configuration ===
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
@@ -94,7 +96,7 @@ echo "Python Path: $(which python)"
 # =========================================================
 
 DATASET_NAME="SPA6_A"
-DATA_ROOT="/coh_labs/dits/nsong/manuscript/${DATASET_NAME}"
+DATA_ROOT="/path/to/data/${DATASET_NAME}"   # EDIT: your preprocessed Visium data dir
 META_CSV="metadata.csv" 
 POS_CSV="tissue_positions.csv"
 

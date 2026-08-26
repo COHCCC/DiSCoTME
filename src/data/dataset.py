@@ -45,10 +45,9 @@ class MultiScaleContextDataset(Dataset):
         if is_rank_0: t_start = time.time()
         if tissue_positions_csv.endswith('.parquet'):
             import pyarrow.parquet as pq
-            pos_path = os.path.join(
-                "/coh_labs/dits/nsong/Mayo_VisiumHD/101/outs", "binned_outputs", "square_016um", "spatial",
-                tissue_positions_csv
-            )
+            # Read the parquet relative to root_dir/spatial (same convention as the
+            # CSV branch below), instead of a machine-specific absolute path.
+            pos_path = os.path.join(self.root_dir, "spatial", tissue_positions_csv)
             self.df_spatial = pq.read_table(pos_path).to_pandas()
             self.df_spatial.rename(columns={"barcode": "spot_id"}, inplace=True)
         else:

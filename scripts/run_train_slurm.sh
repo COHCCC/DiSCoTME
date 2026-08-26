@@ -4,7 +4,7 @@
 
 #SBATCH --job-name=discotme_gated
 #SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --mail-user=jiasong@coh.org
+#SBATCH --mail-user=your_email@example.com
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=1
 #SBATCH --partition=gpu-v100-dev
@@ -19,9 +19,9 @@
 # USER CONFIGURATION - MODIFY THESE
 # =============================================================================
 
-PROJECT_ROOT="/coh_labs/dits/nsong/manuscript/unit_test_v2/DiSCoTME"  # <-- ADD THIS
+PROJECT_ROOT=""                       # leave empty to auto-detect from this script's location, or set your repo path
 CONDA_ENV="discotme_v2"
-DATA_ROOT="/coh_labs/dits/nsong/manuscript/unit_test_v2/demo_data/"                    # <-- CHANGE THIS
+DATA_ROOT="/path/to/your/data/"       # <-- CHANGE THIS to your preprocessed data dir
 META_CSV="metadata.csv"
 POS_CSV="tissue_positions.csv"
 
