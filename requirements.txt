@@ -27,6 +27,11 @@ Pillow>=9.0.0
 h5py>=3.11.0
 tifffile==2024.8.30
 imagecodecs==2024.9.22
+# --- Visium HD only: lazy WSI (.btf) reading via tifffile aszarr, and reading
+#     tissue_positions.parquet with pandas. zarr MUST stay <3 (3.x changed the
+#     store API that tifffile's aszarr relies on). ---
+zarr>=2.16,<3
+pyarrow>=14.0
 # === Config & Utils ===
 PyYAML>=6.0
 tqdm>=4.65.0

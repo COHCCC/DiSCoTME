@@ -3,6 +3,11 @@ configs/local_paths.sh
 
 # Outputs
 checkpoints/
+# Large analysis outputs / figures (regenerate locally; don't commit).
+# Anchored /*.png keeps repo-root artifacts out but preserves assets/*.png.
+eval/cohort_full_results/
+/*.pdf
+/*.png
 # SLURM Logs (所有位置)
 slurm_logs/
 **/slurm_logs/          

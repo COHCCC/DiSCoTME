@@ -229,6 +229,109 @@ python eval/run_eval_with_alpha.py \
 
 ---
 
+# Visium HD
+
+DiSCoTME also supports **10x Visium HD** through an isolated sub-bin extension.
+Each 16 µm bin is grouped into a `GxG` **super-bin** (e.g. 4×4 = 64 µm); the
+`GxG` sub-bins are aggregated with a gated **attention-MIL** head instead of
+being averaged, which preserves sub-bin spatial structure.
+
+**Design:** all HD code lives under `src/hd/`, `scripts/hd/`, `eval/hd/`,
+`configs/hd/`, and `preprocessing/hd/`, and reuses the regular-Visium core by
+**registration + subclassing** — no shared file is modified, so the standard
+Visium pipeline is byte-for-byte unchanged.
+
+### 1. Prepare data — download → extract → preprocess
+
+Example: **Visium HD Human Colon Cancer** (10x public, Space Ranger 4.0.1,
+GRCh38). Needs ~65 GB free (≈25 GB download + ≈40 GB extracted).
+
+**Download** the full-res H&E (BigTIFF) and the binned outputs:
+```bash
+SAMPLE=/path/to/Visium_HD_Human_Colon_Cancer
+mkdir -p "$SAMPLE"
+BASE=https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Colon_Cancer
+wget -c -P "$SAMPLE" $BASE/Visium_HD_Human_Colon_Cancer_tissue_image.btf       # ~10.3 GB  H&E (BigTIFF)
+wget -c -P "$SAMPLE" $BASE/Visium_HD_Human_Colon_Cancer_binned_outputs.tar.gz  # ~14.8 GB  expression + spatial
+```
+
+**Extract** (the pipeline uses only the 16 µm bin):
+```bash
+tar -xzf "$SAMPLE"/Visium_HD_Human_Colon_Cancer_binned_outputs.tar.gz -C "$SAMPLE"
+```
+Required inputs after extraction:
+```
+$SAMPLE/binned_outputs/square_016um/filtered_feature_bc_matrix.h5
+$SAMPLE/binned_outputs/square_016um/spatial/scalefactors_json.json
+$SAMPLE/binned_outputs/square_016um/spatial/tissue_positions.parquet
+$SAMPLE/Visium_HD_Human_Colon_Cancer_tissue_image.btf   # NOTE: the WSI sits at the sample ROOT, not inside square_016um
+```
+
+**Preprocess** into model-ready sub-bins:
+```bash
+export HDF5_USE_FILE_LOCKING=FALSE          # needed for scanpy to open .h5 on Isilon/Lustre
+SQ="$SAMPLE/binned_outputs/square_016um"
+python preprocessing/hd/preprocess_visiumhd_subbin.py \
+    --root "$SQ" \
+    --wsi  "$SAMPLE/Visium_HD_Human_Colon_Cancer_tissue_image.btf" \  # pass explicitly: autodetect misses a WSI at the sample root
+    --out  "$SQ/preprocess_subbin_full_g4" \
+    --grid 4 \               # super-bin size: 2=32µm, 3=48µm, 4=64µm
+    --n_genes 2000 \         # number of HVGs
+    --progress-every 2000    # whole slide; add --quadrant br to process one quadrant only
+```
+SLURM template: `eval/hd/preprocess_subbin_HumanCC_g4.slurm` (`-p compute --mem 128G`).
+
+**Output** — `preprocess_subbin_full_g4/` is the `--data-root` for train/eval:
+
+| File | Contents |
+|------|----------|
+| `metadata.csv` | one row per super-bin: `spot_id, image_path, gene_vector_path` |
+| `image/<sbid>.jpg` | one H&E patch covering the g×g footprint |
+| `genes/<sbid>.npy` | `[N_sub, n_genes]` stacked sub-bin HVG vectors (N_sub = grid², empty slots = 0) |
+| `spatial/tissue_positions.csv` | headerless: `spot_id, in_tissue, srow, scol, pxl_row, pxl_col` (centroid) |
+| `subbin_map.csv` | `spot_id, slot, sub_barcode, sub_array_row, sub_array_col` |
+| `preprocess_subbin_report.json` | provenance (grid / n_genes / written / skipped) |
+
+Feed it to the model with `--data-root "$SQ/preprocess_subbin_full_g4"
+--metadata-csv metadata.csv --tissue-positions-csv tissue_positions.csv`.
+
+### 2. Train
+Use the HD entry `scripts/hd/run_train_hd.py`, the sub-bin gene encoder, and the
+relpos config:
+```bash
+torchrun --nproc_per_node=4 scripts/hd/run_train_hd.py \
+    --data-root /path/to/preprocess_subbin_full_g4 \
+    --gene-encoder-type subbin_gene_encoder_n16 \
+    --config-path configs/hd/visiumhd_crc_dilated_n120_relpos.yaml \
+    --num-local 15 --num-global 0 --local-distance 500 \
+    --batch-size 12 --num-epochs 5
+```
+A full multi-node SLURM template is in `scripts/hd/run_ddp_hd_HumanCC_g4.sh`.
+
+### 3. Evaluate
+```bash
+python eval/hd/run_eval_hd.py \
+    --data-root /path/to/preprocess_subbin_full_g4 \
+    --model-path /path/to/checkpoints/<run>/checkpoint_epoch5.pth \
+    --gene-encoder-type subbin_gene_encoder_n16 \
+    --config-path configs/hd/visiumhd_crc_dilated_n120_relpos.yaml \
+    --output-dir ./hd_eval_results/
+```
+
+### HD gene encoders (`--gene-encoder-type`)
+| Name | Sub-bins | Aggregation |
+|------|----------|-------------|
+| `subbin_gene_encoder_n16` | 16 (4×4, 64 µm) | gated attention-MIL (**default**) |
+| `subbin_gene_encoder_n9`  | 9 (3×3, 48 µm)  | gated attention-MIL |
+| `subbin_gene_encoder_mean`| 4 | masked mean (ablation) |
+| `subbin_gene_encoder_mlp` | 4 | fixed-order concat → MLP (ablation) |
+
+> **Note:** for HD, neighbors are the nearest `num_local` sub-bins (k-NN);
+> regular Visium keeps its radius-based (`local_distance`) selection. This is
+> injected from the HD wrappers and does not alter any shared file.
+
+---
+
 # Key Parameters
 
 ### Most Commonly Tuned

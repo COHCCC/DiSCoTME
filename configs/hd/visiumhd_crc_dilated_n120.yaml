@@ -1,0 +1,14 @@
+encoder_layers: 6
+encoder_embed_dim: 256
+encoder_ffn_embed_dim: 1024
+encoder_attention_heads: 8
+dilated_ratio: "[1, 2, 4, 8]"
+segment_length: "[15, 30, 60, 60]"
+block_shift: true
+flash_attention: true
+use_xmoe: false
+moe_top1_expert: false
+moe_freq: 0
+moe_expert_count: 0
+dropout: 0.1
+drop_path_rate: 0.1

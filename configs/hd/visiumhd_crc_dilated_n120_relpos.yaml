@@ -1,0 +1,28 @@
+# HD-only variant of visiumhd_crc_dilated_n120.yaml.
+# Adds relative positional encoding to kill the absolute-location shortcut
+# (large symmetric color blocks). Regular Visium configs do NOT set these
+# keys, so their behavior is unchanged.
+encoder_layers: 6
+encoder_embed_dim: 256
+encoder_ffn_embed_dim: 1024
+encoder_attention_heads: 8
+dilated_ratio: "[1, 2, 4, 8]"
+segment_length: "[15, 30, 60, 60]"
+block_shift: true
+flash_attention: true
+use_xmoe: false
+moe_top1_expert: false
+moe_freq: 0
+moe_expert_count: 0
+dropout: 0.1
+drop_path_rate: 0.1
+
+# --- Relative positional encoding (HD opt-in) ---
+# Encode (context_pos - target_pos) / pos_scale instead of absolute coords.
+relative_pos: true
+# pos_scale = bin pitch in full-res pixels (CRC: radius=29 -> 2*29=58),
+# i.e. relative position measured in "bins". Re-derive per sample from
+# preprocess_report.json (patch_size) if the resolution differs.
+pos_scale: 58
+# Down-weight the positional signal vs the original 0.3 default.
+pos_weight: 0.1
