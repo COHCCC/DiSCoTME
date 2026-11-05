@@ -1,8 +1,22 @@
-# DiSCoTME (Dilated Spatial Context for the Tumor Microenvironment)
+<div align="center">
 
-## Using multi-scale spatial integration of histology and transcriptomics to discover hidden tumor microenvironment motifs
+## DiSCoTME: Multi-scale Spatial Integration of Histology and Transcriptomics Uncovers Hidden Architecture of the Tumor Microenvironment.
 
-Jiarong Song, Bohan Zhang, Rayyan Aburajab, Jing Qian, Rania Bassiouni, John J.Y. Lee, John D. Carpten, David W. Craig*
+*Cancer Research* (in press, 2026) · DOI: 10.1158/0008-5472.CAN-26-2170
+
+Jiarong Song, Bohan Zhang, Rayyan Aburajab, Jing Qian, Rania Bassiouni, John J.Y. Lee, John D. Carpten, David W. Craig<sup>*</sup>
+
+<sup>*</sup>Corresponding author
+
+</div>
+
+---
+
+## 📢 News
+
+- **[2026-11]** DiSCoTME has been accepted for publication in *Cancer Research*. Online publication is expected in early December 2026.
+
+---
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
